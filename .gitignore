@@ -3,5 +3,6 @@
 *.o
 gmon.out
 libevent-async.a
+ControlFlowTests
 EchoServerExample
 HTTPServerExample

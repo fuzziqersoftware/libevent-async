@@ -13,7 +13,10 @@ else
 	CXXFLAGS += -I$(INSTALL_DIR)/include -DLINUX
 endif
 
-all: libphosg-event.a EchoServerExample HTTPServerExample
+all: libphosg-event.a ControlFlowTests EchoServerExample HTTPServerExample
+
+ControlFlowTests: ControlFlowTests.o $(OBJECTS)
+	g++ -o ControlFlowTests $(LDFLAGS) $^
 
 EchoServerExample: EchoServerExample.o $(OBJECTS)
 	g++ -o EchoServerExample $(LDFLAGS) $^
@@ -31,6 +34,6 @@ libphosg-event.a: $(OBJECTS)
 	ar rcs libphosg-event.a $(OBJECTS)
 
 clean:
-	rm -rf *.dSYM *.o gmon.out libphosg-event.a EchoServerExample HTTPServerExample
+	rm -rf *.dSYM *.o gmon.out libphosg-event.a ControlFlowTests EchoServerExample HTTPServerExample
 
 .PHONY: clean
