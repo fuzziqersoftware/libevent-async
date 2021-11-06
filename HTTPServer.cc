@@ -106,6 +106,9 @@ void HTTPServer::add_socket(int fd, bool ssl) {
   if (ssl) {
     if (!this->ssl_http) {
       this->ssl_http = evhttp_new(this->base.base);
+      if (!this->ssl_http) {
+        throw bad_alloc();
+      }
       evhttp_set_bevcb(
           this->ssl_http,
           this->dispatch_on_ssl_connection,
@@ -117,6 +120,9 @@ void HTTPServer::add_socket(int fd, bool ssl) {
   } else {
     if (!this->http) {
       this->http = evhttp_new(this->base.base);
+      if (!this->http) {
+        throw bad_alloc();
+      }
       evhttp_set_gencb(this->http, this->dispatch_handle_request, this);
     }
     evhttp_accept_socket(this->http, fd);
@@ -145,11 +151,11 @@ void HTTPServer::dispatch_handle_request(
     struct evhttp_request* req,
     void* ctx) {
   auto* s = reinterpret_cast<HTTPServer*>(ctx);
-  HTTPServerRequest req_obj(s->base, req);
+  HTTPRequest req_obj(s->base, req);
   s->handle_request(req_obj);
 }
 
-void HTTPServer::send_response(HTTPServerRequest& req, int code,
+void HTTPServer::send_response(HTTPRequest& req, int code,
     const char* content_type, EvBuffer& buf) {
 
   req.add_output_header("Content-Type", content_type);
@@ -164,7 +170,7 @@ void HTTPServer::send_response(HTTPServerRequest& req, int code,
       buf.buf);
 }
 
-void HTTPServer::send_response(HTTPServerRequest& req, int code,
+void HTTPServer::send_response(HTTPRequest& req, int code,
     const char* content_type, const char* fmt, ...) {
   EvBuffer out_buffer(this->base);
 
@@ -176,7 +182,7 @@ void HTTPServer::send_response(HTTPServerRequest& req, int code,
   HTTPServer::send_response(req, code, content_type, out_buffer);
 }
 
-void HTTPServer::send_response(HTTPServerRequest& req, int code,
+void HTTPServer::send_response(HTTPRequest& req, int code,
     const char* content_type) {
   if (!this->server_name.empty()) {
     req.add_output_header("Server", this->server_name.c_str());

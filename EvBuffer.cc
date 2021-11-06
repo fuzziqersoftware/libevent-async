@@ -10,7 +10,7 @@ using namespace std::experimental;
 EvBuffer::EvBuffer(EventBase& base)
   : base(base), buf(evbuffer_new()), owned(true) {
   if (!this->buf) {
-    throw runtime_error("evbuffer_new");
+    throw bad_alloc();
   }
 }
 

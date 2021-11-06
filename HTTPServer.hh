@@ -14,7 +14,7 @@
 
 #include "EventBase.hh"
 #include "EvBuffer.hh"
-#include "HTTPServerRequest.hh"
+#include "HTTPRequest.hh"
 #include "AsyncTask.hh"
 
 
@@ -45,21 +45,21 @@ protected:
   static void dispatch_handle_request(struct evhttp_request* req, void* ctx);
 
   void send_response(
-      HTTPServerRequest& req,
+      HTTPRequest& req,
       int code,
       const char* content_type,
       EvBuffer& b);
   void send_response(
-      HTTPServerRequest& req,
+      HTTPRequest& req,
       int code,
       const char* content_type,
       const char* fmt, ...);
   void send_response(
-      HTTPServerRequest& req,
+      HTTPRequest& req,
       int code,
       const char* content_type = nullptr);
 
-  virtual DetachedTask handle_request(HTTPServerRequest& req) = 0;
+  virtual DetachedTask handle_request(HTTPRequest& req) = 0;
 
   static const std::unordered_map<int, const char*> explanation_for_response_code;
 };

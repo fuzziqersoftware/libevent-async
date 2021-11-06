@@ -16,7 +16,11 @@ Event::Event(
     short what,
     void (*cb)(evutil_socket_t fd, short what, void* ctx),
     void* ctx)
-  : ev(event_new(base.base, fd, what, cb, ctx)) { }
+  : ev(event_new(base.base, fd, what, cb, ctx)) {
+  if (!this->ev) {
+    throw bad_alloc();
+  }
+}
 
 Event::Event(Event&& other) : ev(other.ev) {
   other.ev = nullptr;

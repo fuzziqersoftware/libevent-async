@@ -55,7 +55,7 @@ HTTPWebsocketServer::WebsocketClient::~WebsocketClient() {
 }
 
 AsyncTask<shared_ptr<HTTPWebsocketServer::WebsocketClient>>
-HTTPWebsocketServer::enable_websockets(HTTPServerRequest& req) {
+HTTPWebsocketServer::enable_websockets(HTTPRequest& req) {
   if (req.get_command() != EVHTTP_REQ_GET) {
     co_return nullptr;
   }

@@ -10,13 +10,14 @@
 
 
 
-struct HTTPServerRequest {
-  HTTPServerRequest(EventBase& base, struct evhttp_request* req);
-  HTTPServerRequest(const HTTPServerRequest& req);
-  HTTPServerRequest(HTTPServerRequest&& req);
-  HTTPServerRequest& operator=(const HTTPServerRequest& req) = delete;
-  HTTPServerRequest& operator=(HTTPServerRequest&& req) = delete;
-  ~HTTPServerRequest() = default;
+struct HTTPRequest {
+  HTTPRequest(EventBase& base);
+  HTTPRequest(EventBase& base, struct evhttp_request* req);
+  HTTPRequest(const HTTPRequest& req) = delete;
+  HTTPRequest(HTTPRequest&& req);
+  HTTPRequest& operator=(const HTTPRequest& req) = delete;
+  HTTPRequest& operator=(HTTPRequest&& req) = delete;
+  ~HTTPRequest();
 
   std::unordered_multimap<std::string, std::string> parse_url_params(
       const char* query = nullptr);
@@ -42,4 +43,5 @@ struct HTTPServerRequest {
 
   EventBase& base;
   struct evhttp_request* req;
+  bool owned;
 };

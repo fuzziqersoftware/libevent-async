@@ -1,6 +1,6 @@
 OBJECTS=AsyncTask.o \
-	EventConfig.o EventBase.o Event.o EvBuffer.o Listener.o \
-	HTTPServerRequest.o HTTPServer.o HTTPWebsocketServer.o
+	EventConfig.o EventBase.o Event.o EvBuffer.o Listener.o EvDNSBase.o \
+	HTTPRequest.o HTTPServer.o HTTPWebsocketServer.o
 CXX=g++ -fPIC
 CXXFLAGS=-I/opt/local/include -I/usr/local/include -std=c++20 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
 LDFLAGS=-L/opt/local/lib -L/usr/local/lib -lphosg -levent -lssl -lcrypto -levent_openssl -g -std=c++20 -lstdc++

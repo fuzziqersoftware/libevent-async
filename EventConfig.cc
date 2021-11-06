@@ -8,7 +8,7 @@ using namespace std;
 
 EventConfig::EventConfig() : config(event_config_new(), event_config_free) {
   if (!this->config.get()) {
-    throw runtime_error("event_config_new");
+    throw bad_alloc();
   }
 }
 

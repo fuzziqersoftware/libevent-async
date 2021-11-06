@@ -53,5 +53,5 @@ protected:
   };
 
   AsyncTask<std::shared_ptr<WebsocketClient>> enable_websockets(
-      HTTPServerRequest& req);
+      HTTPRequest& req);
 };

@@ -1,4 +1,4 @@
-#include "HTTPServerRequest.hh"
+#include "HTTPRequest.hh"
 
 #include <phosg/Strings.hh>
 
@@ -6,17 +6,30 @@ using namespace std;
 
 
 
-HTTPServerRequest::HTTPServerRequest(EventBase& base, struct evhttp_request* req)
-  : base(base), req(req){ }
-
-HTTPServerRequest::HTTPServerRequest(const HTTPServerRequest& other)
-  : base(other.base), req(other.req) { }
-
-HTTPServerRequest::HTTPServerRequest(HTTPServerRequest&& other)
-  : base(other.base), req(other.req) {
+HTTPRequest::HTTPRequest(EventBase& base)
+  : base(base),
+    req(evhttp_request_new(nullptr, nullptr)),
+    owned(false) {
+  if (!this->req) {
+    throw bad_alloc();
+  }
 }
 
-unordered_multimap<string, string> HTTPServerRequest::parse_url_params(const char* query_str) {
+HTTPRequest::HTTPRequest(EventBase& base, struct evhttp_request* req)
+  : base(base), req(req), owned(false) { }
+
+HTTPRequest::HTTPRequest(HTTPRequest&& other)
+  : base(other.base), req(other.req), owned(other.owned) {
+  other.owned = false;
+}
+
+HTTPRequest::~HTTPRequest() {
+  if (this->owned && this->req) {
+    evhttp_request_free(this->req);
+  }
+}
+
+unordered_multimap<string, string> HTTPRequest::parse_url_params(const char* query_str) {
   string query;
   if (query_str) {
     query = query_str;
@@ -60,61 +73,61 @@ unordered_multimap<string, string> HTTPServerRequest::parse_url_params(const cha
   return params;
 }
 
-unordered_map<string, string> HTTPServerRequest::parse_url_params_unique(
+unordered_map<string, string> HTTPRequest::parse_url_params_unique(
     const char* query) {
   unordered_map<string, string> ret;
-  for (const auto& it : HTTPServerRequest::parse_url_params(query)) {
+  for (const auto& it : HTTPRequest::parse_url_params(query)) {
     ret.emplace(it.first, move(it.second));
   }
   return ret;
 }
 
-enum evhttp_cmd_type HTTPServerRequest::get_command() const {
+enum evhttp_cmd_type HTTPRequest::get_command() const {
   return evhttp_request_get_command(this->req);
 }
 
-struct evhttp_connection* HTTPServerRequest::get_connection() {
+struct evhttp_connection* HTTPRequest::get_connection() {
   return evhttp_request_get_connection(this->req);
 }
 
-const struct evhttp_uri* HTTPServerRequest::get_evhttp_uri() const {
+const struct evhttp_uri* HTTPRequest::get_evhttp_uri() const {
   return evhttp_request_get_evhttp_uri(this->req);
 }
 
-const char* HTTPServerRequest::get_host() const {
+const char* HTTPRequest::get_host() const {
   return evhttp_request_get_host(this->req);
 }
 
-EvBuffer HTTPServerRequest::get_input_buffer() {
+EvBuffer HTTPRequest::get_input_buffer() {
   return EvBuffer(this->base, evhttp_request_get_input_buffer(this->req));
 }
 
-EvBuffer HTTPServerRequest::get_output_buffer() {
+EvBuffer HTTPRequest::get_output_buffer() {
   return EvBuffer(this->base, evhttp_request_get_output_buffer(this->req));
 }
 
-struct evkeyvalq* HTTPServerRequest::get_input_headers() {
+struct evkeyvalq* HTTPRequest::get_input_headers() {
   return evhttp_request_get_input_headers(this->req);
 }
 
-struct evkeyvalq* HTTPServerRequest::get_output_headers() {
+struct evkeyvalq* HTTPRequest::get_output_headers() {
   return evhttp_request_get_output_headers(this->req);
 }
 
-const char* HTTPServerRequest::get_input_header(const char* header_name) {
+const char* HTTPRequest::get_input_header(const char* header_name) {
   struct evkeyvalq* in_headers = this->get_input_headers();
   return evhttp_find_header(in_headers, header_name);
 }
 
-void HTTPServerRequest::add_output_header(const char* header_name, const char* value) {
+void HTTPRequest::add_output_header(const char* header_name, const char* value) {
   struct evkeyvalq* out_headers = this->get_output_headers();
   evhttp_add_header(out_headers, header_name, value);
 }
 
-int HTTPServerRequest::get_response_code() {
+int HTTPRequest::get_response_code() {
   return evhttp_request_get_response_code(this->req);
 }
 
-const char* HTTPServerRequest::get_uri() {
+const char* HTTPRequest::get_uri() {
   return evhttp_request_get_uri(this->req);
 }

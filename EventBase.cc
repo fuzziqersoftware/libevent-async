@@ -14,7 +14,7 @@ using namespace std::experimental;
 EventBase::EventBase()
   : base(event_base_new()) {
   if (!this->base) {
-    throw runtime_error("event_base_new failed");
+    throw bad_alloc();
   }
 }
 

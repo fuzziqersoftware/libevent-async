@@ -13,7 +13,7 @@ public:
   ExampleHTTPServer(EventBase& base) : HTTPServer(base, nullptr) { }
 
 protected:
-  virtual DetachedTask handle_request(HTTPServerRequest& req) {
+  virtual DetachedTask handle_request(HTTPRequest& req) {
     const auto* uri = req.get_evhttp_uri();
     this->send_response(
         req,
