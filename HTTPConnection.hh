@@ -7,6 +7,7 @@
 #include <string>
 
 #include "EvBuffer.hh"
+#include "HTTPRequest.hh"
 
 
 

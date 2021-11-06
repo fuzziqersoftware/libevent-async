@@ -19,10 +19,13 @@ struct HTTPRequest {
   HTTPRequest& operator=(HTTPRequest&& req) = delete;
   ~HTTPRequest();
 
-  std::unordered_multimap<std::string, std::string> parse_url_params(
-      const char* query = nullptr);
-  std::unordered_map<std::string, std::string> parse_url_params_unique(
-      const char* query = nullptr);
+  static std::unordered_multimap<std::string, std::string> parse_url_params(
+      const char* query);
+  static std::unordered_map<std::string, std::string> parse_url_params_unique(
+      const char* query);
+
+  std::unordered_multimap<std::string, std::string> parse_url_params();
+  std::unordered_map<std::string, std::string> parse_url_params_unique();
 
   enum evhttp_cmd_type get_command() const;
   struct evhttp_connection* get_connection();

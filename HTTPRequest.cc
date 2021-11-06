@@ -29,17 +29,15 @@ HTTPRequest::~HTTPRequest() {
   }
 }
 
-unordered_multimap<string, string> HTTPRequest::parse_url_params(const char* query_str) {
-  string query;
-  if (query_str) {
-    query = query_str;
-  } else {
-    const struct evhttp_uri* uri = evhttp_request_get_evhttp_uri(this->req);
-    query = evhttp_uri_get_query(uri);
-  }
+unordered_multimap<string, string> HTTPRequest::parse_url_params() {
+  const struct evhttp_uri* uri = evhttp_request_get_evhttp_uri(this->req);
+  const char* query = evhttp_uri_get_query(uri);
+  return this->parse_url_params(query);
+}
 
+unordered_multimap<string, string> HTTPRequest::parse_url_params(const char* query) {
   unordered_multimap<string, string> params;
-  if (query.empty()) {
+  if (*query == '\0') {
     return params;
   }
   for (auto it : split(query, '&')) {
@@ -71,6 +69,12 @@ unordered_multimap<string, string> HTTPRequest::parse_url_params(const char* que
     }
   }
   return params;
+}
+
+unordered_map<string, string> HTTPRequest::parse_url_params_unique() {
+  const struct evhttp_uri* uri = evhttp_request_get_evhttp_uri(this->req);
+  const char* query = evhttp_uri_get_query(uri);
+  return this->parse_url_params_unique(query);
 }
 
 unordered_map<string, string> HTTPRequest::parse_url_params_unique(
