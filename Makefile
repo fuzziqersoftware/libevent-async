@@ -13,7 +13,7 @@ else
 	CXXFLAGS += -I$(INSTALL_DIR)/include -DLINUX
 endif
 
-all: libphosg-event.a ControlFlowTests EchoServerExample HTTPServerExample
+all: libevent-async.a ControlFlowTests EchoServerExample HTTPServerExample
 
 ControlFlowTests: ControlFlowTests.o $(OBJECTS)
 	g++ -o ControlFlowTests $(LDFLAGS) $^
@@ -24,16 +24,16 @@ EchoServerExample: EchoServerExample.o $(OBJECTS)
 HTTPServerExample: HTTPServerExample.o $(OBJECTS)
 	g++ -o HTTPServerExample $(LDFLAGS) $^
 
-install: libphosg-event.a
-	mkdir -p $(INSTALL_DIR)/include/phosg-event
-	cp libphosg-event.a $(INSTALL_DIR)/lib/
-	cp -r *.hh $(INSTALL_DIR)/include/phosg-event/
+install: libevent-async.a
+	mkdir -p $(INSTALL_DIR)/include/event-async
+	cp libevent-async.a $(INSTALL_DIR)/lib/
+	cp -r *.hh $(INSTALL_DIR)/include/event-async/
 
-libphosg-event.a: $(OBJECTS)
-	rm -rf libphosg-event.a
-	ar rcs libphosg-event.a $(OBJECTS)
+libevent-async.a: $(OBJECTS)
+	rm -rf libevent-async.a
+	ar rcs libevent-async.a $(OBJECTS)
 
 clean:
-	rm -rf *.dSYM *.o gmon.out libphosg-event.a ControlFlowTests EchoServerExample HTTPServerExample
+	rm -rf *.dSYM *.o gmon.out libevent-async.a ControlFlowTests EchoServerExample HTTPServerExample
 
 .PHONY: clean
