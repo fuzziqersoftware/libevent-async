@@ -1,4 +1,7 @@
-#include "HTTPServerRequest.hh"
+#include "HTTPConnection.hh"
+
+#include <openssl/x509v3.h>
+#include <event2/bufferevent_ssl.h>
 
 #include <phosg/Strings.hh>
 
@@ -30,12 +33,12 @@ HTTPConnection::HTTPConnection(
     SSL_set_verify(ssl, SSL_VERIFY_PEER, NULL);
 
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
-    SSL_set_tlsext_host_name(ssl, this->hostname.c_str());
+    SSL_set_tlsext_host_name(ssl, host.c_str());
 #endif
 
     // bev takes ownership of ssl
     struct bufferevent* bev = bufferevent_openssl_socket_new(
-        this->base,
+        this->base.base,
         -1, // fd
         ssl,
         BUFFEREVENT_SSL_CONNECTING,
@@ -49,7 +52,7 @@ HTTPConnection::HTTPConnection(
     // conn takes ownership of bev
     this->conn = evhttp_connection_base_bufferevent_new(
         this->base.base,
-        this->dns_base.dns_base,
+        dns_base.dns_base,
         bev,
         host.c_str(),
         port);
@@ -59,7 +62,7 @@ HTTPConnection::HTTPConnection(
     }
   } else {
     this->conn = evhttp_connection_base_new(
-        this->base, this->dns_base, host.c_str(), port);
+        this->base.base, dns_base.dns_base, host.c_str(), port);
     if (!this->conn) {
       throw runtime_error("failed to create http connection");
     }
@@ -138,7 +141,7 @@ HTTPConnection::Awaiter HTTPConnection::send_request(
     HTTPRequest& req,
     evhttp_cmd_type method,
     const char* path_and_query) {
-  if (evhttp_make_request(conn, req, method, request_path.c_str())) {
+  if (evhttp_make_request(conn, req.req, method, path_and_query)) {
     throw runtime_error("failed to send http request");
   }
   return Awaiter(req);

@@ -2,11 +2,15 @@
 
 #include <event2/event.h>
 #include <event2/http.h>
+#include <openssl/err.h>
+#include <openssl/ssl.h>
 
 #include <unordered_map>
 #include <string>
 
 #include "EvBuffer.hh"
+#include "EventBase.hh"
+#include "EvDNSBase.hh"
 #include "HTTPRequest.hh"
 
 
@@ -15,7 +19,7 @@ struct HTTPConnection {
   HTTPConnection(
       EventBase& base,
       EvDNSBase& dns_base,
-      const char* host,
+      const std::string& host,
       uint16_t port,
       SSL_CTX* ssl_ctx = nullptr);
   HTTPConnection(const HTTPConnection& req) = delete;
@@ -50,5 +54,5 @@ struct HTTPConnection {
       const char* path_and_query);
 
   EventBase& base;
-  struct evhttp_request* req;
+  struct evhttp_connection* conn;
 };
