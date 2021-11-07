@@ -251,9 +251,9 @@ private:
 
 class DetachedTaskPromise;
 
-class DetachedTaskHandle {
+class DetachedTaskCoroutine {
 public:
-  explicit DetachedTaskHandle(std::experimental::coroutine_handle<> coro) noexcept;
+  explicit DetachedTaskCoroutine(std::experimental::coroutine_handle<> coro) noexcept;
   // Note: this is also called by the final awaiter when the task returns
   // naturally, so it's technically misnamed... external callers will only need
   // to think of it as cancellation though.
@@ -268,22 +268,22 @@ class DetachedTask {
 public:
   using promise_type = DetachedTaskPromise;
 
-  explicit DetachedTask(std::shared_ptr<DetachedTaskHandle> handle);
+  explicit DetachedTask(std::shared_ptr<DetachedTaskCoroutine> handle);
   bool cancel() noexcept;
 private:
-  std::shared_ptr<DetachedTaskHandle> handle;
+  std::shared_ptr<DetachedTaskCoroutine> handle;
 };
 
 class DetachedTaskPromise {
 public:
   class FinalAwaiter {
   public:
-    explicit FinalAwaiter(std::shared_ptr<DetachedTaskHandle> handle) noexcept;
+    explicit FinalAwaiter(std::shared_ptr<DetachedTaskCoroutine> handle) noexcept;
     void await_resume() const noexcept;
     bool await_ready() const noexcept;
     void await_suspend(std::experimental::coroutine_handle<> coro) noexcept;
   private:
-    std::shared_ptr<DetachedTaskHandle> handle;
+    std::shared_ptr<DetachedTaskCoroutine> handle;
   };
 
   DetachedTaskPromise();
@@ -295,5 +295,5 @@ public:
   void unhandled_exception() const noexcept;
 
 private:
-  std::shared_ptr<DetachedTaskHandle> handle;
+  std::shared_ptr<DetachedTaskCoroutine> handle;
 };

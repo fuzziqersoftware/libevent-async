@@ -18,10 +18,10 @@ void AsyncTask<void>::Awaiter::await_resume() const {
 
 
 
-DetachedTaskHandle::DetachedTaskHandle(coroutine_handle<> coro) noexcept
+DetachedTaskCoroutine::DetachedTaskCoroutine(coroutine_handle<> coro) noexcept
   : coro(coro) { }
 
-bool DetachedTaskHandle::cancel() noexcept {
+bool DetachedTaskCoroutine::cancel() noexcept {
   bool should_destroy = !this->destroyed.exchange(true);
   if (should_destroy) {
     this->coro.destroy();
@@ -29,7 +29,7 @@ bool DetachedTaskHandle::cancel() noexcept {
   return should_destroy;
 }
 
-DetachedTask::DetachedTask(std::shared_ptr<DetachedTaskHandle> handle)
+DetachedTask::DetachedTask(std::shared_ptr<DetachedTaskCoroutine> handle)
   : handle(handle) { }
 
 bool DetachedTask::cancel() noexcept {
@@ -37,7 +37,7 @@ bool DetachedTask::cancel() noexcept {
 }
 
 DetachedTaskPromise::FinalAwaiter::FinalAwaiter(
-    shared_ptr<DetachedTaskHandle> handle) noexcept
+    shared_ptr<DetachedTaskCoroutine> handle) noexcept
   : handle(handle) { }
 
 void DetachedTaskPromise::FinalAwaiter::await_resume() const noexcept { }
@@ -52,7 +52,7 @@ void DetachedTaskPromise::FinalAwaiter::await_suspend(
 }
 
 DetachedTaskPromise::DetachedTaskPromise()
-  : handle(new DetachedTaskHandle(
+  : handle(new DetachedTaskCoroutine(
       coroutine_handle<DetachedTaskPromise>::from_promise(*this))) { }
 
 DetachedTask DetachedTaskPromise::get_return_object() {
