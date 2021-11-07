@@ -1,6 +1,9 @@
 #include "HTTPRequest.hh"
 
 #include <phosg/Strings.hh>
+#include <phosg/Time.hh>
+
+#include "HTTPConnection.hh"
 
 using namespace std;
 
@@ -8,8 +11,10 @@ using namespace std;
 
 HTTPRequest::HTTPRequest(EventBase& base)
   : base(base),
-    req(evhttp_request_new(nullptr, nullptr)),
-    owned(false) {
+    req(evhttp_request_new(&HTTPRequest::on_response, this)),
+    owned(false),
+    is_complete(false),
+    awaiter(nullptr) {
   if (!this->req) {
     throw bad_alloc();
   }
@@ -134,4 +139,20 @@ int HTTPRequest::get_response_code() {
 
 const char* HTTPRequest::get_uri() {
   return evhttp_request_get_uri(this->req);
+}
+
+void HTTPRequest::on_response(struct evhttp_request* ev_req, void* ctx) {
+  auto* req = reinterpret_cast<HTTPRequest*>(ctx);
+
+  // By default, calling evhttp_make_request causes the request to become owned
+  // by the connection object. We don't want that here - the caller is a
+  // coroutine, and will need to examine the result after this callback returns.
+  // Fortunately, libevent allows us to override the default ownership behavior.
+  evhttp_request_own(req->req);
+
+  req->is_complete = true;
+  if (req->awaiter) {
+    auto* aw = reinterpret_cast<HTTPConnection::Awaiter*>(req->awaiter);
+    aw->on_response();
+  }
 }

@@ -4,6 +4,7 @@
 #include <event2/bufferevent_ssl.h>
 
 #include <phosg/Strings.hh>
+#include <phosg/Time.hh>
 
 using namespace std;
 
@@ -30,7 +31,7 @@ HTTPConnection::HTTPConnection(
       throw runtime_error("failed to set expected hostname");
     }
 
-    SSL_set_verify(ssl, SSL_VERIFY_PEER, NULL);
+    SSL_set_verify(ssl, SSL_VERIFY_PEER, nullptr);
 
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
     SSL_set_tlsext_host_name(ssl, host.c_str());
@@ -79,6 +80,21 @@ HTTPConnection::~HTTPConnection() {
   }
 }
 
+SSL_CTX* HTTPConnection::create_default_ssl_ctx() {
+  SSL_CTX* ssl_ctx = SSL_CTX_new(TLS_client_method());
+  if (!ssl_ctx) {
+    throw runtime_error("SSL_CTX_new did not succeed");
+  }
+
+  auto* store = SSL_CTX_get_cert_store(ssl_ctx);
+  if (X509_STORE_set_default_paths(store) != 1) {
+    throw runtime_error("X509_STORE_set_default_paths did not succeed");
+  }
+
+  SSL_CTX_set_verify(ssl_ctx, SSL_VERIFY_PEER, nullptr);
+  return ssl_ctx;
+}
+
 std::pair<std::string, uint16_t> HTTPConnection::get_peer() const {
   char* address = nullptr;
   uint16_t port;
@@ -118,29 +134,28 @@ void HTTPConnection::set_timeout(int timeout_secs) {
 HTTPConnection::Awaiter::Awaiter(HTTPRequest& req) : req(req), coro(nullptr) { }
 
 bool HTTPConnection::Awaiter::await_ready() const noexcept {
-  return false;
+  return this->req.is_complete;
 }
 
 void HTTPConnection::Awaiter::await_suspend(std::experimental::coroutine_handle<> coro) {
-  evhttp_request_set_on_complete_cb(this->req.req, &Awaiter::on_response, this);
+  this->req.awaiter = this;
+  this->coro = coro;
 }
 
-void HTTPConnection::Awaiter::await_resume() { }
+void HTTPConnection::Awaiter::await_resume() {
+}
 
-void HTTPConnection::Awaiter::on_response(struct evhttp_request* req, void* ctx) {
-  // By default, calling evhttp_make_request causes the request to become owned
-  // by the connection object. We don't want that here - the caller is a
-  // coroutine, and will need to examine the result after this callback returns.
-  // Fortunately, libevent allows us to override the default ownership behavior.
-  evhttp_request_own(req);
-
-  reinterpret_cast<Awaiter*>(ctx)->coro.resume();
+void HTTPConnection::Awaiter::on_response() {
+  this->coro.resume();
 }
 
 HTTPConnection::Awaiter HTTPConnection::send_request(
     HTTPRequest& req,
     evhttp_cmd_type method,
     const char* path_and_query) {
+  if (req.is_complete) {
+    throw logic_error("attempted to re-send completed request");
+  }
   if (evhttp_make_request(conn, req.req, method, path_and_query)) {
     throw runtime_error("failed to send http request");
   }

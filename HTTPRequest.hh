@@ -47,4 +47,13 @@ struct HTTPRequest {
   EventBase& base;
   struct evhttp_request* req;
   bool owned;
+
+  // This is unfortunate. There's no externally-available way to change a
+  // request's cb or cb_arg after it's created, so we have to store context in
+  // this class because the awaiter doesn't exist yet when the request object is
+  // created.
+  bool is_complete; // only relevant for outbound requests
+  void* awaiter;
+
+  static void on_response(struct evhttp_request* req, void* ctx);
 };

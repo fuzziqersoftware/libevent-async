@@ -6,3 +6,4 @@ libevent-async.a
 ControlFlowTests
 EchoServerExample
 HTTPServerExample
+HTTPClientExample

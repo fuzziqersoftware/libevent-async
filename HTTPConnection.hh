@@ -28,6 +28,8 @@ struct HTTPConnection {
   HTTPConnection& operator=(HTTPConnection&& req) = delete;
   ~HTTPConnection();
 
+  static SSL_CTX* create_default_ssl_ctx();
+
   std::pair<std::string, uint16_t> get_peer() const;
   void set_local_address(const char* addr);
   void set_local_port(uint16_t port);
@@ -42,8 +44,8 @@ struct HTTPConnection {
     bool await_ready() const noexcept;
     void await_suspend(std::experimental::coroutine_handle<> coro);
     void await_resume();
+    void on_response();
   private:
-    static void on_response(struct evhttp_request *, void *);
     HTTPRequest& req;
     std::experimental::coroutine_handle<> coro;
   };
