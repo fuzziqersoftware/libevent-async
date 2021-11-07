@@ -83,6 +83,8 @@ public:
   WriteAwaiter write(evutil_socket_t fd, const void* data, size_t size);
   WriteAwaiter write(evutil_socket_t fd, const std::string& data);
 
+  EventAwaiter connect(const std::string& addr, int port);
+
   struct event_base* base;
 
 protected:

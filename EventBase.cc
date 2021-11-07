@@ -3,6 +3,7 @@
 #include <unistd.h>
 
 #include <phosg/Time.hh>
+#include <phosg/Network.hh>
 
 #include "Event.hh"
 
@@ -88,6 +89,11 @@ EventBase::WriteAwaiter EventBase::write(evutil_socket_t fd, const void* data, s
 
 EventBase::WriteAwaiter EventBase::write(evutil_socket_t fd, const std::string& data) {
   return WriteAwaiter(*this, fd, data.data(), data.size());
+}
+
+EventAwaiter EventBase::connect(const std::string& addr, int port) {
+  int fd = ::connect(addr, port, true);
+  return EventAwaiter(*this, fd, EV_WRITE);
 }
 
 
