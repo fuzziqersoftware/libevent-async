@@ -133,6 +133,7 @@ struct EvBuffer {
 
   ReadAtMostAwaiter read(evutil_socket_t fd, ssize_t size = -1);
   ReadExactlyAwaiter read_exactly(evutil_socket_t fd, size_t size);
+  ReadExactlyAwaiter read_to(evutil_socket_t fd, size_t size);
 
   class WriteAwaiter {
   public:

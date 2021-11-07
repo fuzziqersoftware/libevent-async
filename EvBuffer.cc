@@ -335,6 +335,15 @@ EvBuffer::ReadExactlyAwaiter EvBuffer::read_exactly(
   return ReadExactlyAwaiter(*this, fd, static_cast<ssize_t>(size));
 }
 
+EvBuffer::ReadExactlyAwaiter EvBuffer::read_to(
+    evutil_socket_t fd, size_t size) {
+  if (size <= this->get_length()) {
+    return ReadExactlyAwaiter(*this, fd, 0);
+  } else {
+    return ReadExactlyAwaiter(*this, fd, size - this->get_length());
+  }
+}
+
 EvBuffer::WriteAwaiter EvBuffer::write(evutil_socket_t fd, ssize_t size) {
   return WriteAwaiter(*this, fd, size);
 }
@@ -354,7 +363,7 @@ EvBuffer::ReadAwaiter::ReadAwaiter(
     coro(nullptr) { }
 
 bool EvBuffer::ReadAwaiter::await_ready() const noexcept {
-  return false;
+  return (this->bytes_read >= this->limit);
 }
 
 void EvBuffer::ReadAwaiter::await_suspend(coroutine_handle<> coro) {
