@@ -164,6 +164,27 @@ string EvBuffer::remove(size_t size) {
   return data;
 }
 
+void EvBuffer::remove_exactly(void* data, size_t size) {
+  int ret = evbuffer_remove(this->buf, data, size);
+  if (ret < 0) {
+    throw runtime_error("evbuffer_remove");
+  } else if (ret < size) {
+    throw runtime_error("not enough data in buffer");
+  }
+}
+
+string EvBuffer::remove_exactly(size_t size) {
+  // TODO: eliminate this unnecessary initialization
+  string data(size, '\0');
+  int bytes_read = evbuffer_remove(this->buf, const_cast<char*>(data.data()), size);
+  if (bytes_read < 0) {
+    throw runtime_error("evbuffer_remove");
+  } else if (bytes_read < size) {
+    throw runtime_error("not enough data in buffer");
+  }
+  return data;
+}
+
 size_t EvBuffer::copyout(void* data, size_t size) {
   ssize_t ret = evbuffer_copyout(this->buf, data, size);
   if (ret < 0) {

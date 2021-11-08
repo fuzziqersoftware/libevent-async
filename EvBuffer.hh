@@ -50,6 +50,8 @@ struct EvBuffer {
 
   size_t remove(void* data, size_t size);
   std::string remove(size_t size);
+  void remove_exactly(void* data, size_t size);
+  std::string remove_exactly(size_t size);
 
   size_t copyout(void* data, size_t size);
   std::string copyout(size_t size);
