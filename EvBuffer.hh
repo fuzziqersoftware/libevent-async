@@ -58,8 +58,7 @@ struct EvBuffer {
   size_t copyout_from(const struct evbuffer_ptr* pos, void* data, size_t size);
   std::string copyout_from(const struct evbuffer_ptr* pos, size_t size);
 
-  std::unique_ptr<char, void(*)(void*)> readln(size_t* bytes_read,
-      enum evbuffer_eol_style eol_style);
+  std::string readln(enum evbuffer_eol_style eol_style);
 
   struct evbuffer_ptr search(const char* what, size_t size,
       const struct evbuffer_ptr* start);

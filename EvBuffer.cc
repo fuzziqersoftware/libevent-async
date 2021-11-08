@@ -223,15 +223,17 @@ string EvBuffer::copyout_from(const struct evbuffer_ptr* pos, size_t size) {
   return data;
 }
 
-unique_ptr<char, void(*)(void*)> EvBuffer::readln(size_t* bytes_read, enum evbuffer_eol_style eol_style) {
-  char* ret = evbuffer_readln(this->buf, bytes_read, eol_style);
-  if (!ret) {
-    return unique_ptr<char, void(*)(void*)>(ret, free);
+string EvBuffer::readln(enum evbuffer_eol_style eol_style) {
+  size_t bytes_read;
+  char* ret = evbuffer_readln(this->buf, &bytes_read, eol_style);
+  if (ret) {
+    // TODO: find a way to keep the API clean without having to copy the string
+    // again here
+    string str(ret, bytes_read);
+    free(ret);
+    return str;
   } else {
-    // Note: we don't throw here because not having a complete line to return is
-    // a fairly common case.
-    // TODO: returning unique_ptr(NULL, NULL) here might crash; fix it if so
-    return unique_ptr<char, void(*)(void*)>(nullptr, nullptr);
+    throw runtime_error("end of stream");
   }
 }
 
