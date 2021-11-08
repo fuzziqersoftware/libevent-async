@@ -85,6 +85,8 @@ public:
 
   EventAwaiter connect(const std::string& addr, int port);
 
+  void dump_events(FILE* stream);
+
   struct event_base* base;
 
 protected:

@@ -260,3 +260,9 @@ void EventBase::WriteAwaiter::on_write_ready(evutil_socket_t fd, short what, voi
     aw->coro.resume();
   }
 }
+
+
+
+void EventBase::dump_events(FILE* stream) {
+  event_base_dump_events(this->base, stream);
+}
