@@ -30,6 +30,7 @@ struct EvBuffer {
   void expand(size_t size);
 
   void add(const void* data, size_t size);
+  void add(const std::string& data);
 
   size_t add_printf(const char* fmt, ...);
   size_t add_vprintf(const char* fmt, va_list va);

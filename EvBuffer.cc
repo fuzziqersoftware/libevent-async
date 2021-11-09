@@ -63,6 +63,10 @@ void EvBuffer::add(const void* data, size_t size) {
   }
 }
 
+void EvBuffer::add(const string& data) {
+  this->add(data.data(), data.size());
+}
+
 size_t EvBuffer::add_printf(const char* fmt, ...) {
   va_list va;
   va_start(va, fmt);
