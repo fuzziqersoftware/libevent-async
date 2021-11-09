@@ -91,9 +91,10 @@ EventBase::WriteAwaiter EventBase::write(evutil_socket_t fd, const std::string& 
   return WriteAwaiter(*this, fd, data.data(), data.size());
 }
 
-EventAwaiter EventBase::connect(const std::string& addr, int port) {
+AsyncTask<int> EventBase::connect(const std::string& addr, int port) {
   int fd = ::connect(addr, port, true);
-  return EventAwaiter(*this, fd, EV_WRITE);
+  co_await EventAwaiter(*this, fd, EV_WRITE);
+  co_return move(fd);
 }
 
 
