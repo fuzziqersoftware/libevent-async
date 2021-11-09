@@ -1,5 +1,6 @@
 #include "EvBuffer.hh"
 
+#include <phosg/Encoding.hh>
 #include <phosg/Strings.hh>
 
 using namespace std;
@@ -156,11 +157,7 @@ size_t EvBuffer::remove(void* data, size_t size) {
 string EvBuffer::remove(size_t size) {
   // TODO: eliminate this unnecessary initialization
   string data(size, '\0');
-  int bytes_read = evbuffer_remove(this->buf, const_cast<char*>(data.data()), size);
-  if (bytes_read < 0) {
-    throw runtime_error("evbuffer_remove");
-  }
-  data.resize(bytes_read);
+  data.resize(this->remove(const_cast<char*>(data.data()), size));
   return data;
 }
 
@@ -176,12 +173,7 @@ void EvBuffer::remove_exactly(void* data, size_t size) {
 string EvBuffer::remove_exactly(size_t size) {
   // TODO: eliminate this unnecessary initialization
   string data(size, '\0');
-  int bytes_read = evbuffer_remove(this->buf, const_cast<char*>(data.data()), size);
-  if (bytes_read < 0) {
-    throw runtime_error("evbuffer_remove");
-  } else if (bytes_read < size) {
-    throw runtime_error("not enough data in buffer");
-  }
+  this->remove_exactly(const_cast<char*>(data.data()), size);
   return data;
 }
 
@@ -196,11 +188,23 @@ size_t EvBuffer::copyout(void* data, size_t size) {
 string EvBuffer::copyout(size_t size) {
   // TODO: eliminate this unnecessary initialization
   string data(size, '\0');
-  ssize_t bytes_read = evbuffer_copyout(this->buf, const_cast<char*>(data.data()), size);
-  if (bytes_read < 0) {
+  data.resize(this->copyout(const_cast<char*>(data.data()), size));
+  return data;
+}
+
+void EvBuffer::copyout_exactly(void* data, size_t size) {
+  int ret = evbuffer_copyout(this->buf, data, size);
+  if (ret < 0) {
     throw runtime_error("evbuffer_copyout");
+  } else if (ret < size) {
+    throw runtime_error("not enough data in buffer");
   }
-  data.resize(bytes_read);
+}
+
+string EvBuffer::copyout_exactly(size_t size) {
+  // TODO: eliminate this unnecessary initialization
+  string data(size, '\0');
+  this->copyout_exactly(const_cast<char*>(data.data()), size);
   return data;
 }
 
@@ -215,13 +219,194 @@ size_t EvBuffer::copyout_from(const struct evbuffer_ptr* pos, void* data, size_t
 string EvBuffer::copyout_from(const struct evbuffer_ptr* pos, size_t size) {
   // TODO: eliminate this unnecessary initialization
   string data(size, '\0');
-  ssize_t bytes_read = evbuffer_copyout_from(this->buf, pos, const_cast<char*>(data.data()), size);
-  if (bytes_read < 0) {
-    throw runtime_error("evbuffer_copyout_from");
-  }
-  data.resize(bytes_read);
+  data.resize(this->copyout_from(pos, const_cast<char*>(data.data()), size));
   return data;
 }
+
+void EvBuffer::copyout_from_exactly(const struct evbuffer_ptr* pos, void* data, size_t size) {
+  ssize_t ret = evbuffer_copyout_from(this->buf, pos, data, size);
+  if (ret < 0) {
+    throw runtime_error("evbuffer_copyout_from");
+  } else if (ret < size) {
+    throw runtime_error("not enough data in buffer");
+  }
+}
+
+string EvBuffer::copyout_from_exactly(const struct evbuffer_ptr* pos, size_t size) {
+  // TODO: eliminate this unnecessary initialization
+  string data(size, '\0');
+  this->copyout_from_exactly(pos, const_cast<char*>(data.data()), size);
+  return data;
+}
+
+void EvBuffer::add_u8(uint8_t v) {
+  this->add<uint8_t>(v);
+}
+
+void EvBuffer::add_s8(int8_t v) {
+  this->add<int8_t>(v);
+}
+
+void EvBuffer::add_u16(uint16_t v) {
+  this->add<uint16_t>(v);
+}
+
+void EvBuffer::add_s16(int16_t v) {
+  this->add<int16_t>(v);
+}
+
+void EvBuffer::add_u16r(uint16_t v) {
+  this->add<uint16_t>(bswap16(v));
+}
+
+void EvBuffer::add_s16r(int16_t v) {
+  this->add<int16_t>(bswap16(v));
+}
+
+void EvBuffer::add_u32(uint32_t v) {
+  this->add<uint32_t>(v);
+}
+
+void EvBuffer::add_s32(int32_t v) {
+  this->add<int32_t>(v);
+}
+
+void EvBuffer::add_u32r(uint32_t v) {
+  this->add<uint32_t>(bswap32(v));
+}
+
+void EvBuffer::add_s32r(int32_t v) {
+  this->add<int32_t>(bswap32(v));
+}
+
+void EvBuffer::add_u64(uint64_t v) {
+  this->add<uint64_t>(v);
+}
+
+void EvBuffer::add_s64(int64_t v) {
+  this->add<int64_t>(v);
+}
+
+void EvBuffer::add_u64r(uint64_t v) {
+  this->add<uint64_t>(bswap64(v));
+}
+
+void EvBuffer::add_s64r(int64_t v) {
+  this->add<int64_t>(bswap64(v));
+}
+
+uint8_t EvBuffer::remove_u8() {
+  return this->remove<uint8_t>();
+}
+
+int8_t EvBuffer::remove_s8() {
+  return this->remove<int8_t>();
+}
+
+uint16_t EvBuffer::remove_u16() {
+  return this->remove<uint16_t>();
+}
+
+int16_t EvBuffer::remove_s16() {
+  return this->remove<int16_t>();
+}
+
+uint16_t EvBuffer::remove_u16r() {
+  return bswap16(this->remove<uint16_t>());
+}
+
+int16_t EvBuffer::remove_s16r() {
+  return bswap16(this->remove<int16_t>());
+}
+
+uint32_t EvBuffer::remove_u32() {
+  return this->remove<uint32_t>();
+}
+
+int32_t EvBuffer::remove_s32() {
+  return this->remove<int32_t>();
+}
+
+uint32_t EvBuffer::remove_u32r() {
+  return bswap32(this->remove<uint32_t>());
+}
+
+int32_t EvBuffer::remove_s32r() {
+  return bswap32(this->remove<int32_t>());
+}
+
+uint64_t EvBuffer::remove_u64() {
+  return this->remove<uint64_t>();
+}
+
+int64_t EvBuffer::remove_s64() {
+  return this->remove<int64_t>();
+}
+
+uint64_t EvBuffer::remove_u64r() {
+  return bswap64(this->remove<uint64_t>());
+}
+
+int64_t EvBuffer::remove_s64r() {
+  return bswap64(this->remove<int64_t>());
+}
+
+uint8_t EvBuffer::copyout_u8() {
+  return this->copyout<uint8_t>();
+}
+
+int8_t EvBuffer::copyout_s8() {
+  return this->copyout<int8_t>();
+}
+
+uint16_t EvBuffer::copyout_u16() {
+  return this->copyout<uint16_t>();
+}
+
+int16_t EvBuffer::copyout_s16() {
+  return this->copyout<int16_t>();
+}
+
+uint16_t EvBuffer::copyout_u16r() {
+  return bswap16(this->copyout<uint16_t>());
+}
+
+int16_t EvBuffer::copyout_s16r() {
+  return bswap16(this->copyout<int16_t>());
+}
+
+uint32_t EvBuffer::copyout_u32() {
+  return this->copyout<uint32_t>();
+}
+
+int32_t EvBuffer::copyout_s32() {
+  return this->copyout<int32_t>();
+}
+
+uint32_t EvBuffer::copyout_u32r() {
+  return bswap32(this->copyout<uint32_t>());
+}
+
+int32_t EvBuffer::copyout_s32r() {
+  return bswap32(this->copyout<int32_t>());
+}
+
+uint64_t EvBuffer::copyout_u64() {
+  return this->copyout<uint64_t>();
+}
+
+int64_t EvBuffer::copyout_s64() {
+  return this->copyout<int64_t>();
+}
+
+uint64_t EvBuffer::copyout_u64r() {
+  return bswap64(this->copyout<uint64_t>());
+}
+
+int64_t EvBuffer::copyout_s64r() {
+  return bswap64(this->copyout<int64_t>());
+}
+
 
 string EvBuffer::readln(enum evbuffer_eol_style eol_style) {
   size_t bytes_read;

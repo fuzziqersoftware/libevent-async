@@ -55,8 +55,69 @@ struct EvBuffer {
 
   size_t copyout(void* data, size_t size);
   std::string copyout(size_t size);
+  void copyout_exactly(void* data, size_t size);
+  std::string copyout_exactly(size_t size);
   size_t copyout_from(const struct evbuffer_ptr* pos, void* data, size_t size);
   std::string copyout_from(const struct evbuffer_ptr* pos, size_t size);
+  void copyout_from_exactly(const struct evbuffer_ptr* pos, void* data, size_t size);
+  std::string copyout_from_exactly(const struct evbuffer_ptr* pos, size_t size);
+
+  template <typename T> void add(const T& t) {
+    this->add(&t, sizeof(T));
+  }
+  template <typename T> T remove() {
+    T ret;
+    this->remove_exactly(&ret, sizeof(T));
+    return ret;
+  }
+  template <typename T> T copyout() {
+    T ret;
+    this->copyout_exactly(&ret, sizeof(T));
+    return ret;
+  }
+
+  void add_u8(uint8_t v);
+  void add_s8(int8_t v);
+  void add_u16(uint16_t v);
+  void add_s16(int16_t v);
+  void add_u16r(uint16_t v);
+  void add_s16r(int16_t v);
+  void add_u32(uint32_t v);
+  void add_s32(int32_t v);
+  void add_u32r(uint32_t v);
+  void add_s32r(int32_t v);
+  void add_u64(uint64_t v);
+  void add_s64(int64_t v);
+  void add_u64r(uint64_t v);
+  void add_s64r(int64_t v);
+  uint8_t remove_u8();
+  int8_t remove_s8();
+  uint16_t remove_u16();
+  int16_t remove_s16();
+  uint16_t remove_u16r();
+  int16_t remove_s16r();
+  uint32_t remove_u32();
+  int32_t remove_s32();
+  uint32_t remove_u32r();
+  int32_t remove_s32r();
+  uint64_t remove_u64();
+  int64_t remove_s64();
+  uint64_t remove_u64r();
+  int64_t remove_s64r();
+  uint8_t copyout_u8();
+  int8_t copyout_s8();
+  uint16_t copyout_u16();
+  int16_t copyout_s16();
+  uint16_t copyout_u16r();
+  int16_t copyout_s16r();
+  uint32_t copyout_u32();
+  int32_t copyout_s32();
+  uint32_t copyout_u32r();
+  int32_t copyout_s32r();
+  uint64_t copyout_u64();
+  int64_t copyout_s64();
+  uint64_t copyout_u64r();
+  int64_t copyout_s64r();
 
   std::string readln(enum evbuffer_eol_style eol_style);
 
