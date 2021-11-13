@@ -2,8 +2,8 @@ OBJECTS=AsyncTask.o \
 	EventConfig.o EventBase.o Event.o EvBuffer.o Listener.o EvDNSBase.o \
 	HTTPRequest.o HTTPConnection.o HTTPServer.o HTTPWebsocketServer.o
 CXX=g++ -fPIC
-CXXFLAGS=-I/usr/local/opt/openssl@1.1/include -I/usr/local/include -I/opt/local/include -std=c++20 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
-LDFLAGS=-L/usr/local/opt/openssl@1.1/lib -L/usr/local/lib -L/opt/local/lib -lphosg -levent -lssl -lcrypto -levent_openssl -g -std=c++20 -lstdc++
+CXXFLAGS=-I/opt/homebrew/opt/openssl@1.1/include -I/opt/homebrew/include -I/usr/local/opt/openssl@1.1/include -I/usr/local/include -I/opt/local/include -std=c++20 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
+LDFLAGS=-L/opt/homebrew/opt/openssl@1.1/lib -L/opt/homebrew/lib -L/usr/local/opt/openssl@1.1/lib -L/usr/local/lib -L/opt/local/lib -lphosg -levent -lssl -lcrypto -levent_openssl -g -std=c++20 -lstdc++
 
 ifeq ($(shell uname -s),Darwin)
 	INSTALL_DIR=/opt/local
