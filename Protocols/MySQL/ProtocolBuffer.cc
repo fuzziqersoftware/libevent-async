@@ -1,7 +1,6 @@
 #include "ProtocolBuffer.hh"
 
 #include <stdio.h>
-#include <event2/buffer.h>
 
 #include <phosg/Strings.hh>
 
@@ -11,7 +10,7 @@ using namespace std;
 
 namespace EventAsync::MySQL {
 
-AsyncTask<uint8_t> ProtocolBuffer::read_command(int fd) {
+Task<uint8_t> ProtocolBuffer::read_command(int fd) {
   if (this->get_length() != 0) {
     throw logic_error("attempted to read command into non-empty buffer");
   }
@@ -22,7 +21,7 @@ AsyncTask<uint8_t> ProtocolBuffer::read_command(int fd) {
   co_return move(command_seq);
 }
 
-AsyncTask<void> ProtocolBuffer::write_command(int fd, uint8_t seq) {
+Task<void> ProtocolBuffer::write_command(int fd, uint8_t seq) {
   ProtocolBuffer send_buf(this->base);
   send_buf.add_u24(this->get_length());
   send_buf.add_u8(seq);

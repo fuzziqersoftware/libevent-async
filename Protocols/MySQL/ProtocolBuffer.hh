@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #include <string>
-#include <event-async/EvBuffer.hh>
+#include "../../EvBuffer.hh"
 
 
 
@@ -15,8 +15,8 @@ public:
   virtual ~ProtocolBuffer() = default;
 
   // Command sending/receiving
-  AsyncTask<uint8_t> read_command(int fd); // returns sequence number
-  AsyncTask<void> write_command(int fd, uint8_t seq);
+  Task<uint8_t> read_command(int fd); // returns sequence number
+  Task<void> write_command(int fd, uint8_t seq);
 
   // Integer types (EvBuffer already provides 8/16/32/64)
   // Warning: these functions do not consider the endianness of the system; it

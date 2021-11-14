@@ -31,7 +31,7 @@ Client::Client(
     reading_binlogs(false),
     expected_binlog_seq(0) { }
 
-AsyncTask<void> Client::connect() {
+Task<void> Client::connect() {
   if (this->fd.is_open()) {
     co_return;
   }
@@ -41,7 +41,7 @@ AsyncTask<void> Client::connect() {
 
 
 
-AsyncTask<void> Client::read_command(ProtocolBuffer& buf) {
+Task<void> Client::read_command(ProtocolBuffer& buf) {
   uint8_t seq = co_await buf.read_command(this->fd);
   if (seq != this->next_seq) {
     throw runtime_error("server sent out-of-sequence commands");
@@ -49,7 +49,7 @@ AsyncTask<void> Client::read_command(ProtocolBuffer& buf) {
   this->next_seq++;
 }
 
-AsyncTask<void> Client::write_command(ProtocolBuffer& buf) {
+Task<void> Client::write_command(ProtocolBuffer& buf) {
   co_await buf.write_command(this->fd, this->next_seq++);
 }
 
@@ -80,7 +80,7 @@ string Client::compute_auth_response(
   }
 }
 
-AsyncTask<void> Client::initial_handshake() {
+Task<void> Client::initial_handshake() {
   ProtocolBuffer buf(this->base);
   this->reset_seq();
 
@@ -183,7 +183,7 @@ AsyncTask<void> Client::initial_handshake() {
   }
 }
 
-AsyncTask<void> Client::quit() {
+Task<void> Client::quit() {
   this->assert_conn_open();
   this->reset_seq();
 
@@ -237,7 +237,7 @@ static Value parse_value(ColumnType type, string&& value) {
   }
 }
 
-AsyncTask<void> Client::change_db(const string& db_name) {
+Task<void> Client::change_db(const string& db_name) {
   this->assert_conn_open();
   this->reset_seq();
 
@@ -250,7 +250,7 @@ AsyncTask<void> Client::change_db(const string& db_name) {
 
 
 
-AsyncTask<ResultSet> Client::query(const std::string& sql) {
+Task<ResultSet> Client::query(const std::string& sql) {
   this->assert_conn_open();
   this->reset_seq();
 
@@ -327,7 +327,7 @@ AsyncTask<ResultSet> Client::query(const std::string& sql) {
 
 
 
-AsyncTask<void> Client::read_binlogs(
+Task<void> Client::read_binlogs(
     const string& filename, size_t position, uint32_t server_id, bool block) {
   this->assert_conn_open();
 
@@ -352,7 +352,7 @@ AsyncTask<void> Client::read_binlogs(
   this->expected_binlog_seq = 1;
 }
 
-AsyncTask<string> Client::get_binlog_event() {
+Task<string> Client::get_binlog_event() {
   this->assert_conn_open();
   if (!this->reading_binlogs) {
     throw logic_error("get_binlog_event called before read_binlogs or after out_of_range");
@@ -387,7 +387,7 @@ void Client::parse_error_body(ProtocolBuffer& buf) {
       error_code, sqlstate.c_str(), message.c_str()));
 }
 
-AsyncTask<void> Client::expect_ok(uint8_t expected_seq) {
+Task<void> Client::expect_ok(uint8_t expected_seq) {
   ProtocolBuffer buf(this->base);
 
   co_await this->read_command(buf);

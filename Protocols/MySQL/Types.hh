@@ -4,10 +4,10 @@
 
 #include <string>
 #include <phosg/Filesystem.hh>
-#include <event-async/AsyncTask.hh>
-#include <event-async/EventBase.hh>
-#include <event-async/EvDNSBase.hh>
-#include <event-async/EvBuffer.hh>
+#include "../../Task.hh"
+#include "../../EventBase.hh"
+#include "../../EvDNSBase.hh"
+#include "../../EvBuffer.hh"
 
 #include "ProtocolBuffer.hh"
 

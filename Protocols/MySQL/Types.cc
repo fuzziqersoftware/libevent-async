@@ -1,7 +1,6 @@
 #include "Client.hh"
 
 #include <stdio.h>
-#include <event2/buffer.h>
 
 #include <phosg/Hash.hh>
 #include <phosg/Random.hh>
