@@ -2,9 +2,15 @@
 
 libevent-async is a C++ wrapper around the libevent API. It wraps commonly-used objects in classes and provides coroutine support for making and accepting connections, reading and writing data, and waiting for timeouts.
 
+There are also basic clients for various common protocols built as libraries alongside libevent-async. Currently, these protocols are:
+* HTTP 1.1 (based on evhttp; includes client, server, and WebSocket server)
+* MySQL (supports making queries, reading result sets, and reading binlogs)
+
 This library was inspired by [rnburn's coevent](https://github.com/rnburn/coevent). This library takes a different approach in that it attempts to expose as much of libevent's functionality as possible using coroutines and other modern paradigms. (In a few places this gets kind of messy, unfortunately.)
 
-## Useful stuff
+## The libevent-async library
+
+Everything here is in the namespace `EventAsync`.
 
 * `AsyncTask<ReturnT>`: The common coroutine task type. Functions defined with this type are coroutines that co_return the specified type (which may be void). Execution does not begin until the task is co_awaited, and tasks are not destroyed automatically upon returning.
 * `DetachedTask`: Used for tasks that execute independently of their callers. Before calling EventBase::run, call one or more DetachedTasks in order to create servers and whatnot. Unlike AsyncTasks, DetachedTasks begin executing immediately when they are called, and are automatically destroyed when their coroutine returns. They may not return a value.
@@ -21,9 +27,17 @@ This library was inspired by [rnburn's coevent](https://github.com/rnburn/coeven
   * `co_await EvBuffer::read_exactly`: Reads the given number of bytes and adds it to the buffer. This awaiter *does not* resume until the requested number of bytes have been read.
   * `co_await EvBuffer::read_to`: Reads enough bytes such that the buffer contains at least the given number of bytes. If the buffer already has that much data or more, the caller is not suspended.
   * `co_await EvBuffer::write`: Writes the given number of bytes from the buffer. This does not drain them from the buffer.
-* `HTTPServer`: Define a subclass of this, then implement handle_request. See HTTPServerExample.cc.
-* `HTTPWebsocketServer`: As above, implement handle_request in a subclass. This class has websocket functions too; you can `co_await this->enable_websockets(req)` to convert the calling request into a websocket stream. enable_websockets returns a client object which you can use to send and receive websocket messages. (If enable_websockets returns nullptr then the request wasn't a websocket request, or it failed to convert it for some reason, and you should still call this->send_response as for a normal HTTP request.)
-* `HTTPConnection`/`HTTPRequest`: These can be used to make outbound HTTP requests, optionally using OpenSSL. See HTTPClientExample.cc.
+
+## The libhttp-async library
+
+This library exists in the namespace `EventAsync::HTTP`.
+
+* `Server`: If you want to serve HTTP, HTTPS, or Websocket traffic, define a subclass of this and implement handle_request. See Protocols/HTTP/ServerExample.cc.
+* `Connection`/`Request`: These can be used to make outbound HTTP requests, optionally using OpenSSL. See Protocols/HTTP/ClientExample.cc.
+
+## The libmysql-async library
+
+This library provides the class `EventAsync::MySQL::Client`. This client can only do a few useful things; fortunately, one of those things is running SQL queries and returning result sets. See Protocols/MySQL/Client.hh for usage information.
 
 ## Things to fix / improve / add
 

@@ -11,5 +11,5 @@ libmysql-async.a
 # Executables
 ControlFlowTests
 EchoServerExample
-HTTPServerExample
-HTTPClientExample
+Protocols/HTTP/ServerExample
+Protocols/HTTP/ClientExample

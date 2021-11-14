@@ -30,8 +30,14 @@ public:
   Server& operator=(Server&&) = delete;
   virtual ~Server();
 
+  // Add a listening socket to this server. You should have already called
+  // listen() on fd and made it nonblocking. If ssl is true, the server will
+  // handle all connections on this fd over SSL. The same Server object can
+  // serve SSL and non-SSL traffic by adding sockets multiple sockets here.
   void add_socket(int fd, bool ssl = false);
 
+  // Sets the server name. If this is called, the server will automatically add
+  // the Server response header to all subsequent responses.
   void set_server_name(const char* server_name);
 
 protected:
@@ -46,6 +52,14 @@ protected:
       void* ctx);
   static void dispatch_handle_request(struct evhttp_request* req, void* ctx);
 
+  // When subclassing Server, you must implement this function to respond to
+  // requests. Your implementation must either call one of the send_response
+  // functions above or convert the request into a Websocket stream.
+  virtual DetachedTask handle_request(Request& req) = 0;
+
+  // Your handle_request implementation should call one of these functions to
+  // send a response to the request. Failure to do so will result in a memory
+  // leak.
   void send_response(
       Request& req,
       int code,
@@ -61,7 +75,43 @@ protected:
       int code,
       const char* content_type = nullptr);
 
-  virtual DetachedTask handle_request(Request& req) = 0;
+  class WebsocketClient {
+  public:
+    WebsocketClient(Server* server, int fd);
+    WebsocketClient(const WebsocketClient&) = delete;
+    WebsocketClient(WebsocketClient&&);
+    WebsocketClient& operator=(const WebsocketClient&) = delete;
+    WebsocketClient& operator=(WebsocketClient&&);
+    ~WebsocketClient();
+
+    struct WebsocketMessage {
+      uint8_t opcode;
+      std::string data;
+      WebsocketMessage();
+    };
+
+    // Waits for a returns a complete Websocket message from the client.
+    Task<WebsocketMessage> read();
+
+    // Sends a Websocket message to the client.
+    Task<void> write(EvBuffer& buf, uint8_t opcode = 0x01);
+    Task<void> write(const std::string& data, uint8_t opcode = 0x01);
+    Task<void> write(const void* data, size_t size, uint8_t opcode = 0x01);
+
+  protected:
+    Server* server;
+    int fd;
+
+    static std::string encode_websocket_message_header(size_t data_size,
+        uint8_t opcode);
+  };
+
+  // Converts the current request into a Websocket stream. Returns a
+  // WebsocketClient object which you can use to send and receive websocket
+  // messages. If this function returns nullptr then the request wasn't a
+  // websocket request, or it failed to change protocols for some reason, and
+  // you should still call send_response as for a normal HTTP request.
+  Task<std::shared_ptr<WebsocketClient>> enable_websockets(Request& req);
 
   static const std::unordered_map<int, const char*> explanation_for_response_code;
 };

@@ -26,28 +26,36 @@ public:
       const char* password);
   ~Client() = default;
 
-  // Open/close the connection
+  // Opens the connection. After constructing a Client object, you must
+  // co_await client.connect() before calling any other methods on it.
   AsyncTask<void> connect();
+
+  // Closes the connection. Does nothing if the connection isn't open.
   AsyncTask<void> quit();
 
-  // Set the current database
+  // Sets the current default database.
   AsyncTask<void> change_db(const std::string& db_name);
 
-  // Send a query
+  // Runs a SQL query.
   AsyncTask<ResultSet> query(const std::string& sql);
 
-  // Read binlogs - call read_binlogs to start reading, then call
-  // get_binlog_event forever or until it throws out_of_range
+  // Starts a binlog stream. To read binlogs, call this method to start reading,
+  // then call get_binlog_event infinitely many times or until it throws
+  // out_of_range.
   AsyncTask<void> read_binlogs(
-      // Filename and position to start reading from
+      // Binlog filename and position to start reading from.
       const std::string& filename,
       size_t position,
-      // Reader's server_id; if zero, client picks a random nonzero value
+      // Reader's server_id. If zero, the client picks a random nonzero value.
       uint32_t server_id = 0,
-      // Blocking mode. If true, get_binlog_event() will block on the remote
-      // side when there are no new events; if false, get_binlog_event() will
-      // throw std::out_of_range when there are no new events.
+      // Blocking mode. See description of get_binlog_event() below.
       bool block = true);
+
+  // Returns the next binlog event from the server's stream. If read_binlogs was
+  // called with block=true and there are no more events available, this method
+  // waits for the server to send another one. If read_binlogs was called with
+  // block=false, this method throws out_of_range when there are no more events
+  // available from the server.
   AsyncTask<std::string> get_binlog_event();
 
 private:
