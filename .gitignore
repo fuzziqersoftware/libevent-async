@@ -7,9 +7,11 @@ gmon.out
 libevent-async.a
 libhttp-async.a
 libmysql-async.a
+libmemcache-async.a
 
 # Executables
 ControlFlowTests
 EchoServerExample
 Protocols/HTTP/ServerExample
 Protocols/HTTP/ClientExample
+Protocols/Memcache/FunctionalTest

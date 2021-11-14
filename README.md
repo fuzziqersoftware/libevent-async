@@ -2,17 +2,18 @@
 
 libevent-async is a C++ wrapper around the libevent API. It wraps commonly-used objects in classes and provides coroutine support for making and accepting connections, reading and writing data, and waiting for timeouts.
 
-There are also basic clients for various common protocols built as libraries alongside libevent-async. Currently, these protocols are:
-* HTTP 1.1 (based on evhttp; includes client, server, and WebSocket server)
-* MySQL (supports making queries, reading result sets, and reading binlogs)
-
 This library was inspired by [rnburn's coevent](https://github.com/rnburn/coevent). This library takes a different approach in that it attempts to expose as much of libevent's functionality as possible using coroutines and other modern paradigms. (In a few places this gets kind of messy, unfortunately.)
+
+There are also clients for various common protocols built as libraries alongside libevent-async. Currently, these protocols are:
+* HTTP 1.1 (client supports SSL; server supports SSL and Websockets)
+* MySQL (SQL queries + binlog streams)
+* Memcache
 
 ## The libevent-async library
 
 Everything here is in the namespace `EventAsync`.
 
-* `AsyncTask<ReturnT>`: The common coroutine task type. Functions defined with this type are coroutines that co_return the specified type (which may be void). Execution does not begin until the task is co_awaited, and tasks are not destroyed automatically upon returning.
+* `Task<ReturnT>`: The common coroutine task type. Functions defined with this type are coroutines that co_return the specified type (which may be void). Execution does not begin until the task is co_awaited, and tasks are not destroyed automatically upon returning.
 * `DetachedTask`: Used for tasks that execute independently of their callers. Before calling EventBase::run, call one or more DetachedTasks in order to create servers and whatnot. Unlike AsyncTasks, DetachedTasks begin executing immediately when they are called, and are automatically destroyed when their coroutine returns. They may not return a value.
 * `EventBase`
   * `run`: Runs the event loop, just like event_base_dispatch().
@@ -37,7 +38,11 @@ This library exists in the namespace `EventAsync::HTTP`.
 
 ## The libmysql-async library
 
-This library provides the class `EventAsync::MySQL::Client`. This client can only do a few useful things; fortunately, one of those things is running SQL queries and returning result sets. See Protocols/MySQL/Client.hh for usage information.
+This library provides the class `EventAsync::MySQL::Client`. This client only supports caching_sha2_password authentication and can only do a few useful things; fortunately, one of those useful things is running SQL queries and returning result sets. See Protocols/MySQL/Client.hh for usage information.
+
+## The libmemcache-async library
+
+This library provides the class `EventAsync::Memcache::Client`. This client supports all the basic operations, but does not support virtual buckets or SASL authentication. See Protocols/Memcache/Client.hh for usage information.
 
 ## Things to fix / improve / add
 
