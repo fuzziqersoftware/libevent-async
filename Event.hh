@@ -7,6 +7,8 @@
 
 
 
+namespace EventAsync {
+
 class EventBase;
 
 class Event {
@@ -85,3 +87,5 @@ private:
   std::experimental::coroutine_handle<> coro;
   static void on_trigger(evutil_socket_t fd, short what, void* ctx);
 };
+
+} // namespace EventAsync

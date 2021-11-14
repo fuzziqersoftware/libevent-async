@@ -1,4 +1,4 @@
-#include "HTTPServer.hh"
+#include "Server.hh"
 
 #include <event2/event.h>
 #include <event2/buffer.h>
@@ -20,7 +20,9 @@ using namespace std;
 
 
 
-const unordered_map<int, const char*> HTTPServer::explanation_for_response_code({
+namespace EventAsync::HTTP {
+
+const unordered_map<int, const char*> Server::explanation_for_response_code({
   {100, "Continue"},
   {101, "Switching Protocols"},
   {102, "Processing"},
@@ -90,10 +92,10 @@ const unordered_map<int, const char*> HTTPServer::explanation_for_response_code(
 
 
 
-HTTPServer::HTTPServer(EventBase& base, SSL_CTX* ssl_ctx)
+Server::Server(EventBase& base, SSL_CTX* ssl_ctx)
   : base(base), http(nullptr), ssl_http(nullptr), ssl_ctx(ssl_ctx) { }
 
-HTTPServer::~HTTPServer() {
+Server::~Server() {
   if (this->http) {
     evhttp_free(this->http);
   }
@@ -102,7 +104,7 @@ HTTPServer::~HTTPServer() {
   }
 }
 
-void HTTPServer::add_socket(int fd, bool ssl) {
+void Server::add_socket(int fd, bool ssl) {
   if (ssl) {
     if (!this->ssl_http) {
       this->ssl_http = evhttp_new(this->base.base);
@@ -129,11 +131,11 @@ void HTTPServer::add_socket(int fd, bool ssl) {
   }
 }
 
-void HTTPServer::set_server_name(const char* new_server_name) {
+void Server::set_server_name(const char* new_server_name) {
   this->server_name = new_server_name;
 }
 
-struct bufferevent* HTTPServer::dispatch_on_ssl_connection(
+struct bufferevent* Server::dispatch_on_ssl_connection(
     struct event_base* base,
     void* ctx) {
 
@@ -147,15 +149,15 @@ struct bufferevent* HTTPServer::dispatch_on_ssl_connection(
       BEV_OPT_CLOSE_ON_FREE);
 }
 
-void HTTPServer::dispatch_handle_request(
+void Server::dispatch_handle_request(
     struct evhttp_request* req,
     void* ctx) {
-  auto* s = reinterpret_cast<HTTPServer*>(ctx);
-  HTTPRequest req_obj(s->base, req);
+  auto* s = reinterpret_cast<Server*>(ctx);
+  Request req_obj(s->base, req);
   s->handle_request(req_obj);
 }
 
-void HTTPServer::send_response(HTTPRequest& req, int code,
+void Server::send_response(Request& req, int code,
     const char* content_type, EvBuffer& buf) {
 
   req.add_output_header("Content-Type", content_type);
@@ -166,11 +168,11 @@ void HTTPServer::send_response(HTTPRequest& req, int code,
   evhttp_send_reply(
       req.req,
       code,
-      HTTPServer::explanation_for_response_code.at(code),
+      Server::explanation_for_response_code.at(code),
       buf.buf);
 }
 
-void HTTPServer::send_response(HTTPRequest& req, int code,
+void Server::send_response(Request& req, int code,
     const char* content_type, const char* fmt, ...) {
   EvBuffer out_buffer(this->base);
 
@@ -179,10 +181,10 @@ void HTTPServer::send_response(HTTPRequest& req, int code,
   out_buffer.add_vprintf(fmt, va);
   va_end(va);
 
-  HTTPServer::send_response(req, code, content_type, out_buffer);
+  Server::send_response(req, code, content_type, out_buffer);
 }
 
-void HTTPServer::send_response(HTTPRequest& req, int code,
+void Server::send_response(Request& req, int code,
     const char* content_type) {
   if (!this->server_name.empty()) {
     req.add_output_header("Server", this->server_name.c_str());
@@ -193,6 +195,8 @@ void HTTPServer::send_response(HTTPRequest& req, int code,
   evhttp_send_reply(
       req.req,
       code,
-      HTTPServer::explanation_for_response_code.at(code),
+      Server::explanation_for_response_code.at(code),
       nullptr);
 }
+
+} // namespace EventAsync::HTTP

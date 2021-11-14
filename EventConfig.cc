@@ -6,6 +6,8 @@ using namespace std;
 
 
 
+namespace EventAsync {
+
 EventConfig::EventConfig() : config(event_config_new(), event_config_free) {
   if (!this->config.get()) {
     throw bad_alloc();
@@ -56,3 +58,5 @@ void EventConfig::set_max_dispatch_interval(const struct timeval* max_interval,
 struct event_config* EventConfig::get() {
   return this->config.get();
 }
+
+} // namespace EventAsync

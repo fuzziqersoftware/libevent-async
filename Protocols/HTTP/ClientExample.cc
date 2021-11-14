@@ -3,27 +3,29 @@
 #include <phosg/Network.hh>
 #include <phosg/Strings.hh>
 
-#include "HTTPConnection.hh"
-#include "HTTPRequest.hh"
-#include "EvDNSBase.hh"
+#include "Connection.hh"
+#include "Request.hh"
+#include "../../EvDNSBase.hh"
 
 using namespace std;
 
 
 
-DetachedTask make_request(
-    EventBase& base,
+EventAsync::DetachedTask make_request(
+    EventAsync::EventBase& base,
     const char* host,
     uint16_t port,
     const char* path) {
 
   shared_ptr<SSL_CTX> ssl_ctx;
   if (port == 443) {
-    ssl_ctx.reset(HTTPConnection::create_default_ssl_ctx(), SSL_CTX_free);
+    ssl_ctx.reset(
+        EventAsync::HTTP::Connection::create_default_ssl_ctx(),
+        SSL_CTX_free);
   }
-  EvDNSBase dns_base(base);
-  HTTPConnection conn(base, dns_base, host, port, ssl_ctx.get());
-  HTTPRequest req(base);
+  EventAsync::EvDNSBase dns_base(base);
+  EventAsync::HTTP::Connection conn(base, dns_base, host, port, ssl_ctx.get());
+  EventAsync::HTTP::Request req(base);
   req.add_output_header("Connection", "close");
 
   string request_path = escape_url(path, false);
@@ -39,7 +41,7 @@ int main(int argc, char** argv) {
     throw invalid_argument("Usage: HTTPClientExample hostname port request_path");
   }
 
-  EventBase base;
+  EventAsync::EventBase base;
   make_request(base, argv[1], atoi(argv[2]), argv[3]);
   base.run();
   return 0;

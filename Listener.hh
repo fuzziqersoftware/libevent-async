@@ -11,6 +11,8 @@
 
 
 
+namespace EventAsync {
+
 class Listener {
 public:
   Listener(EventBase& base, int fd);
@@ -43,3 +45,5 @@ protected:
   EventBase& base;
   scoped_fd listen_fd;
 };
+
+} // namespace EventAsync

@@ -10,6 +10,8 @@
 
 
 
+namespace EventAsync {
+
 // TODO: support evdns_server functions
 
 class EvDNSBase {
@@ -65,3 +67,5 @@ public:
 
   struct evdns_base* dns_base;
 };
+
+} // namespace EventAsync

@@ -2,18 +2,19 @@
 #include <experimental/coroutine>
 #include <phosg/Network.hh>
 
-#include "HTTPServer.hh"
+#include "Server.hh"
 
 using namespace std;
 
 
 
-class ExampleHTTPServer : public HTTPServer {
+class ExampleHTTPServer : public EventAsync::HTTP::Server {
 public:
-  ExampleHTTPServer(EventBase& base) : HTTPServer(base, nullptr) { }
+  ExampleHTTPServer(EventAsync::EventBase& base) : Server(base, nullptr) { }
 
 protected:
-  virtual DetachedTask handle_request(HTTPRequest& req) {
+  virtual EventAsync::DetachedTask handle_request(
+      EventAsync::HTTP::Request& req) {
     const auto* uri = req.get_evhttp_uri();
     this->send_response(
         req,
@@ -26,7 +27,7 @@ protected:
 };
 
 int main(int argc, char** argv) {
-  EventBase base;
+  EventAsync::EventBase base;
   ExampleHTTPServer server(base);
   server.add_socket(listen("", 5050, SOMAXCONN));
   base.run();

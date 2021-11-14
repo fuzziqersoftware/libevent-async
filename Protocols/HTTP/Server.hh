@@ -12,21 +12,23 @@
 #include <string>
 #include <unordered_map>
 
-#include "EventBase.hh"
-#include "EvBuffer.hh"
-#include "HTTPRequest.hh"
-#include "AsyncTask.hh"
+#include "../../EventBase.hh"
+#include "../../EvBuffer.hh"
+#include "../../Task.hh"
+#include "Request.hh"
 
 
 
-class HTTPServer {
+namespace EventAsync::HTTP {
+
+class Server {
 public:
-  HTTPServer(EventBase& base, SSL_CTX* ssl_ctx);
-  HTTPServer(const HTTPServer&) = delete;
-  HTTPServer(HTTPServer&&) = delete;
-  HTTPServer& operator=(const HTTPServer&) = delete;
-  HTTPServer& operator=(HTTPServer&&) = delete;
-  virtual ~HTTPServer();
+  Server(EventBase& base, SSL_CTX* ssl_ctx);
+  Server(const Server&) = delete;
+  Server(Server&&) = delete;
+  Server& operator=(const Server&) = delete;
+  Server& operator=(Server&&) = delete;
+  virtual ~Server();
 
   void add_socket(int fd, bool ssl = false);
 
@@ -45,21 +47,23 @@ protected:
   static void dispatch_handle_request(struct evhttp_request* req, void* ctx);
 
   void send_response(
-      HTTPRequest& req,
+      Request& req,
       int code,
       const char* content_type,
       EvBuffer& b);
   void send_response(
-      HTTPRequest& req,
+      Request& req,
       int code,
       const char* content_type,
       const char* fmt, ...);
   void send_response(
-      HTTPRequest& req,
+      Request& req,
       int code,
       const char* content_type = nullptr);
 
-  virtual DetachedTask handle_request(HTTPRequest& req) = 0;
+  virtual DetachedTask handle_request(Request& req) = 0;
 
   static const std::unordered_map<int, const char*> explanation_for_response_code;
 };
+
+} // namespace EventAsync::HTTP

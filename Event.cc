@@ -8,6 +8,8 @@ using namespace std::experimental;
 
 
 
+namespace EventAsync {
+
 Event::Event() : ev(nullptr) { }
 
 Event::Event(
@@ -126,3 +128,5 @@ void TimeoutAwaiter::await_resume() {
 void TimeoutAwaiter::on_trigger(evutil_socket_t fd, short what, void* ctx) {
   reinterpret_cast<TimeoutAwaiter*>(ctx)->coro.resume();
 }
+
+} // namespace EventAsync

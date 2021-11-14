@@ -12,6 +12,8 @@ using namespace std::experimental;
 
 
 
+namespace EventAsync {
+
 EventBase::EventBase()
   : base(event_base_new()) {
   if (!this->base) {
@@ -77,7 +79,7 @@ EventBase::ReadAwaiter EventBase::read(evutil_socket_t fd, void* data, size_t si
   return ReadAwaiter(*this, fd, data, size);
 }
 
-AsyncTask<string> EventBase::read(evutil_socket_t fd, size_t size) {
+Task<string> EventBase::read(evutil_socket_t fd, size_t size) {
   string ret(size, '\0');
   co_await this->read(fd, const_cast<char*>(ret.data()), ret.size());
   co_return ret;
@@ -91,7 +93,7 @@ EventBase::WriteAwaiter EventBase::write(evutil_socket_t fd, const std::string& 
   return WriteAwaiter(*this, fd, data.data(), data.size());
 }
 
-AsyncTask<int> EventBase::connect(const std::string& addr, int port) {
+Task<int> EventBase::connect(const std::string& addr, int port) {
   int fd = ::connect(addr, port, true);
   co_await EventAwaiter(*this, fd, EV_WRITE);
   co_return move(fd);
@@ -267,3 +269,5 @@ void EventBase::WriteAwaiter::on_write_ready(evutil_socket_t fd, short what, voi
 void EventBase::dump_events(FILE* stream) {
   event_base_dump_events(this->base, stream);
 }
+
+} // namespace EventAsync

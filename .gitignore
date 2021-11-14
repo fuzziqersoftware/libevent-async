@@ -2,7 +2,13 @@
 *.dSYM
 *.o
 gmon.out
+
+# Libraries
 libevent-async.a
+libhttp-async.a
+libmysql-async.a
+
+# Executables
 ControlFlowTests
 EchoServerExample
 HTTPServerExample

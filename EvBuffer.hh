@@ -12,6 +12,8 @@
 
 
 
+namespace EventAsync {
+
 struct EvBuffer {
   explicit EvBuffer(EventBase& base);
   EvBuffer(EventBase& base, struct evbuffer* buf);
@@ -227,3 +229,5 @@ struct EvBuffer {
   struct evbuffer* buf;
   bool owned;
 };
+
+} // namespace EventAsync

@@ -6,11 +6,13 @@
 #include <vector>
 #include <string>
 
-#include "AsyncTask.hh"
+#include "Task.hh"
 #include "EventConfig.hh"
 #include "Event.hh"
 
 
+
+namespace EventAsync {
 
 class EventBase {
 public:
@@ -78,12 +80,12 @@ public:
   TimeoutAwaiter sleep(uint64_t usecs);
 
   ReadAwaiter read(evutil_socket_t fd, void* data, size_t size);
-  AsyncTask<std::string> read(evutil_socket_t fd, size_t size);
+  Task<std::string> read(evutil_socket_t fd, size_t size);
 
   WriteAwaiter write(evutil_socket_t fd, const void* data, size_t size);
   WriteAwaiter write(evutil_socket_t fd, const std::string& data);
 
-  AsyncTask<int> connect(const std::string& addr, int port);
+  Task<int> connect(const std::string& addr, int port);
 
   void dump_events(FILE* stream);
 
@@ -92,3 +94,5 @@ public:
 protected:
   static void dispatch_once_cb(evutil_socket_t fd, short what, void* ctx);
 };
+
+} // namespace EventAsync

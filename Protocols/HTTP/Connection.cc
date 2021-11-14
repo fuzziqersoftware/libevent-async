@@ -1,4 +1,4 @@
-#include "HTTPConnection.hh"
+#include "Connection.hh"
 
 #include <openssl/x509v3.h>
 #include <event2/bufferevent_ssl.h>
@@ -7,10 +7,13 @@
 #include <phosg/Time.hh>
 
 using namespace std;
+using namespace std::experimental;
 
 
 
-HTTPConnection::HTTPConnection(
+namespace EventAsync::HTTP {
+
+Connection::Connection(
       EventBase& base,
       EvDNSBase& dns_base,
       const string& host,
@@ -70,17 +73,17 @@ HTTPConnection::HTTPConnection(
   }
 }
 
-HTTPConnection::HTTPConnection(HTTPConnection&& other)
+Connection::Connection(Connection&& other)
   : base(other.base), conn(other.conn) {
 }
 
-HTTPConnection::~HTTPConnection() {
+Connection::~Connection() {
   if (this->conn) {
     evhttp_connection_free(this->conn);
   }
 }
 
-SSL_CTX* HTTPConnection::create_default_ssl_ctx() {
+SSL_CTX* Connection::create_default_ssl_ctx() {
   SSL_CTX* ssl_ctx = SSL_CTX_new(TLS_client_method());
   if (!ssl_ctx) {
     throw runtime_error("SSL_CTX_new did not succeed");
@@ -95,7 +98,7 @@ SSL_CTX* HTTPConnection::create_default_ssl_ctx() {
   return ssl_ctx;
 }
 
-std::pair<std::string, uint16_t> HTTPConnection::get_peer() const {
+pair<string, uint16_t> Connection::get_peer() const {
   char* address = nullptr;
   uint16_t port;
   evhttp_connection_get_peer(this->conn, &address, &port);
@@ -105,52 +108,52 @@ std::pair<std::string, uint16_t> HTTPConnection::get_peer() const {
   return make_pair(address, port);
 }
 
-void HTTPConnection::set_local_address(const char* addr) {
+void Connection::set_local_address(const char* addr) {
   evhttp_connection_set_local_address(this->conn, addr);
 }
 
-void HTTPConnection::set_local_port(uint16_t port) {
+void Connection::set_local_port(uint16_t port) {
   evhttp_connection_set_local_port(this->conn, port);
 }
 
-void HTTPConnection::set_max_body_size(ev_ssize_t max_body_size) {
+void Connection::set_max_body_size(ev_ssize_t max_body_size) {
   evhttp_connection_set_max_body_size(this->conn, max_body_size);
 }
 
-void HTTPConnection::set_max_headers_size(ev_ssize_t max_headers_size) {
+void Connection::set_max_headers_size(ev_ssize_t max_headers_size) {
   evhttp_connection_set_max_headers_size(this->conn, max_headers_size);
 }
 
-void HTTPConnection::set_retries(int retry_max) {
+void Connection::set_retries(int retry_max) {
   evhttp_connection_set_retries(this->conn, retry_max);
 }
 
-void HTTPConnection::set_timeout(int timeout_secs) {
+void Connection::set_timeout(int timeout_secs) {
   evhttp_connection_set_timeout(this->conn, timeout_secs);
 }
 
 
 
-HTTPConnection::Awaiter::Awaiter(HTTPRequest& req) : req(req), coro(nullptr) { }
+Connection::Awaiter::Awaiter(Request& req) : req(req), coro(nullptr) { }
 
-bool HTTPConnection::Awaiter::await_ready() const noexcept {
+bool Connection::Awaiter::await_ready() const noexcept {
   return this->req.is_complete;
 }
 
-void HTTPConnection::Awaiter::await_suspend(std::experimental::coroutine_handle<> coro) {
+void Connection::Awaiter::await_suspend(coroutine_handle<> coro) {
   this->req.awaiter = this;
   this->coro = coro;
 }
 
-void HTTPConnection::Awaiter::await_resume() {
+void Connection::Awaiter::await_resume() {
 }
 
-void HTTPConnection::Awaiter::on_response() {
+void Connection::Awaiter::on_response() {
   this->coro.resume();
 }
 
-HTTPConnection::Awaiter HTTPConnection::send_request(
-    HTTPRequest& req,
+Connection::Awaiter Connection::send_request(
+    Request& req,
     evhttp_cmd_type method,
     const char* path_and_query) {
   if (req.is_complete) {
@@ -161,3 +164,5 @@ HTTPConnection::Awaiter HTTPConnection::send_request(
   }
   return Awaiter(req);
 }
+
+} // namespace EventAsync::HTTP

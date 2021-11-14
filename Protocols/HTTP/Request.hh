@@ -6,18 +6,20 @@
 #include <unordered_map>
 #include <string>
 
-#include "EvBuffer.hh"
+#include "../../EvBuffer.hh"
 
 
 
-struct HTTPRequest {
-  HTTPRequest(EventBase& base);
-  HTTPRequest(EventBase& base, struct evhttp_request* req);
-  HTTPRequest(const HTTPRequest& req) = delete;
-  HTTPRequest(HTTPRequest&& req);
-  HTTPRequest& operator=(const HTTPRequest& req) = delete;
-  HTTPRequest& operator=(HTTPRequest&& req) = delete;
-  ~HTTPRequest();
+namespace EventAsync::HTTP {
+
+struct Request {
+  Request(EventBase& base);
+  Request(EventBase& base, struct evhttp_request* req);
+  Request(const Request& req) = delete;
+  Request(Request&& req);
+  Request& operator=(const Request& req) = delete;
+  Request& operator=(Request&& req) = delete;
+  ~Request();
 
   static std::unordered_multimap<std::string, std::string> parse_url_params(
       const char* query);
@@ -29,7 +31,7 @@ struct HTTPRequest {
 
   enum evhttp_cmd_type get_command() const;
   struct evhttp_connection* get_connection();
-  // TODO: We should write an HTTPURI class to wrap this
+  // TODO: We should write a URI class to wrap this
   const struct evhttp_uri* get_evhttp_uri() const;
   const char* get_host() const;
 
@@ -57,3 +59,5 @@ struct HTTPRequest {
 
   static void on_response(struct evhttp_request* req, void* ctx);
 };
+
+} // namespace EventAsync::HTTP

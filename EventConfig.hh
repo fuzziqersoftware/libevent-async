@@ -6,6 +6,8 @@
 
 
 
+namespace EventAsync {
+
 class EventConfig {
 public:
   EventConfig();
@@ -29,3 +31,5 @@ public:
 protected:
   std::unique_ptr<struct event_config, void(*)(struct event_config*)> config;
 };
+
+} // namespace EventAsync

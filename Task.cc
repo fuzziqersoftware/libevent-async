@@ -1,17 +1,19 @@
-#include "AsyncTask.hh"
+#include "Task.hh"
 
 using namespace std;
 using namespace std::experimental;
 
 
 
-coroutine_handle<> AsyncTask<void>::Awaiter::await_suspend(
+namespace EventAsync {
+
+coroutine_handle<> Task<void>::Awaiter::await_suspend(
     coroutine_handle<> awaiting_coro) const noexcept {
   this->coro.promise().set_awaiting_coro(awaiting_coro);
   return this->coro;
 }
 
-void AsyncTask<void>::Awaiter::await_resume() const {
+void Task<void>::Awaiter::await_resume() const {
   // We still need to call .result() in case there's an exception to re-throw.
   this->coro.promise().result();
 }
@@ -72,3 +74,5 @@ void DetachedTaskPromise::return_void() const noexcept { }
 void DetachedTaskPromise::unhandled_exception() const noexcept {
   terminate();
 }
+
+} // namespace EventAsync

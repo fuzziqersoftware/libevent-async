@@ -4,6 +4,8 @@ using namespace std;
 
 
 
+namespace EventAsync {
+
 Listener::Listener(EventBase& base, int fd) : base(base), listen_fd(fd) { }
 
 Listener::Awaiter Listener::accept() const {
@@ -47,3 +49,5 @@ void Listener::Awaiter::on_accept_ready(int fd, short what, void* ctx) {
     aw->coro.resume(); // Got an fd; coro can resume
   }
 }
+
+} // namespace EventAsync

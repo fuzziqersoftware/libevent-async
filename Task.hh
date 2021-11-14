@@ -6,13 +6,15 @@
 
 
 
-template<typename TaskReturnT>
+namespace EventAsync {
+
+template<typename ReturnT>
 class TaskPromise;
 
-template <typename TaskReturnT>
-class AsyncTask {
+template <typename ReturnT>
+class Task {
 public:
-  using promise_type = TaskPromise<TaskReturnT>;
+  using promise_type = TaskPromise<ReturnT>;
 
   class Awaiter {
   public:
@@ -36,7 +38,7 @@ public:
   class CopyAwaiter : public Awaiter {
   public:
     using Awaiter::Awaiter;
-    TaskReturnT& await_resume() const {
+    ReturnT& await_resume() const {
       return this->coro.promise().result();
     }
   };
@@ -44,25 +46,25 @@ public:
   class MoveAwaiter : public Awaiter {
   public:
     using Awaiter::Awaiter;
-    TaskReturnT&& await_resume() const {
+    ReturnT&& await_resume() const {
       return std::move(this->coro.promise().result());
     }
   };
 
-  AsyncTask() noexcept = default;
-  AsyncTask(std::experimental::coroutine_handle<promise_type> coro) noexcept
+  Task() noexcept = default;
+  Task(std::experimental::coroutine_handle<promise_type> coro) noexcept
     : coro(coro) { }
-  AsyncTask(const AsyncTask& other) = delete;
-  AsyncTask(AsyncTask&& other) noexcept : coro(other.coro) {
+  Task(const Task& other) = delete;
+  Task(Task&& other) noexcept : coro(other.coro) {
     other.coro = nullptr;
   }
-  ~AsyncTask() noexcept {
+  ~Task() noexcept {
     if (this->coro != nullptr) {
       this->coro.destroy();
     }
   }
-  AsyncTask& operator=(const AsyncTask& other) = delete;
-  AsyncTask& operator=(AsyncTask&& other) noexcept {
+  Task& operator=(const Task& other) = delete;
+  Task& operator=(Task&& other) noexcept {
     if (this->coro != nullptr) {
       this->coro.destroy();
     }
@@ -84,7 +86,7 @@ public:
 };
 
 template <>
-class AsyncTask<void> {
+class Task<void> {
 public:
   using promise_type = TaskPromise<void>;
 
@@ -108,20 +110,20 @@ public:
     std::experimental::coroutine_handle<promise_type> coro;
   };
 
-  AsyncTask() noexcept = default;
-  AsyncTask(std::experimental::coroutine_handle<promise_type> coro) noexcept
+  Task() noexcept = default;
+  Task(std::experimental::coroutine_handle<promise_type> coro) noexcept
     : coro(coro) { }
-  AsyncTask(const AsyncTask& other) = delete;
-  AsyncTask(AsyncTask&& other) noexcept : coro(other.coro) {
+  Task(const Task& other) = delete;
+  Task(Task&& other) noexcept : coro(other.coro) {
     other.coro = nullptr;
   }
-  ~AsyncTask() noexcept {
+  ~Task() noexcept {
     if (this->coro != nullptr) {
       this->coro.destroy();
     }
   }
-  AsyncTask& operator=(const AsyncTask& other) = delete;
-  AsyncTask& operator=(AsyncTask&& other) noexcept {
+  Task& operator=(const Task& other) = delete;
+  Task& operator=(Task&& other) noexcept {
     if (this->coro != nullptr) {
       this->coro.destroy();
     }
@@ -140,7 +142,7 @@ public:
 
 
 
-template<typename TaskReturnT>
+template<typename ReturnT>
 class TaskPromise {
 public:
   class FinalAwaiter {
@@ -161,7 +163,7 @@ public:
     this->awaiting_coro = coro;
   }
 
-  TaskReturnT& result() {
+  ReturnT& result() {
     auto* result = std::get_if<0>(&this->value);
     if (result != nullptr) {
       return *result;
@@ -170,8 +172,8 @@ public:
     }
   }
 
-  AsyncTask<TaskReturnT> get_return_object() {
-    return AsyncTask<TaskReturnT>(
+  Task<ReturnT> get_return_object() {
+    return Task<ReturnT>(
         std::experimental::coroutine_handle<TaskPromise>::from_promise(*this));
   }
 
@@ -183,8 +185,8 @@ public:
     return FinalAwaiter();
   }
 
-  void return_value(TaskReturnT&& value) {
-    this->value.template emplace<0>(std::forward<TaskReturnT>(value));
+  void return_value(ReturnT&& value) {
+    this->value.template emplace<0>(std::forward<ReturnT>(value));
   }
 
   void unhandled_exception() noexcept {
@@ -193,7 +195,7 @@ public:
 
 private:
   std::experimental::coroutine_handle<> awaiting_coro;
-  std::variant<TaskReturnT, std::exception_ptr> value;
+  std::variant<ReturnT, std::exception_ptr> value;
 };
 
 template<>
@@ -223,8 +225,8 @@ public:
     }
   }
 
-  AsyncTask<void> get_return_object() {
-    return AsyncTask<void>(
+  Task<void> get_return_object() {
+    return Task<void>(
         std::experimental::coroutine_handle<TaskPromise>::from_promise(*this));
   }
 
@@ -297,3 +299,5 @@ public:
 private:
   std::shared_ptr<DetachedTaskCoroutine> handle;
 };
+
+} // namespace EventAsync

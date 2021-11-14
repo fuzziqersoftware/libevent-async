@@ -4,6 +4,8 @@ using namespace std;
 
 
 
+namespace EventAsync {
+
 EvDNSBase::EvDNSBase(EventBase& base)
   : dns_base(evdns_base_new(base.base, true)) { }
 
@@ -130,3 +132,5 @@ void EvDNSBase::cancel_request(struct evdns_request* req) {
 const char* err_to_string(int err) {
   return evdns_err_to_string(err);
 }
+
+} // namespace EventAsync

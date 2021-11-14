@@ -8,6 +8,8 @@ using namespace std::experimental;
 
 
 
+namespace EventAsync {
+
 EvBuffer::EvBuffer(EventBase& base)
   : base(base), buf(evbuffer_new()), owned(true) {
   if (!this->buf) {
@@ -685,3 +687,5 @@ void EvBuffer::WriteAwaiter::on_write_ready(evutil_socket_t fd, short what, void
     aw->coro.resume();
   }
 }
+
+} // namespace EventAsync

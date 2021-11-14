@@ -1,4 +1,4 @@
-#include "HTTPWebsocketServer.hh"
+#include "WebsocketServer.hh"
 
 #include <event2/event.h>
 #include <event2/buffer.h>
@@ -20,42 +20,43 @@
 #include <unordered_set>
 #include <vector>
 
-
 using namespace std;
 
 
 
-HTTPWebsocketServer::HTTPWebsocketServer(EventBase& base, SSL_CTX* ssl_ctx)
-  : HTTPServer(base, ssl_ctx) { }
+namespace EventAsync::HTTP {
 
-HTTPWebsocketServer::WebsocketClient::WebsocketClient(
-    HTTPWebsocketServer* server,
+WebsocketServer::WebsocketServer(EventBase& base, SSL_CTX* ssl_ctx)
+  : Server(base, ssl_ctx) { }
+
+WebsocketServer::WebsocketClient::WebsocketClient(
+    WebsocketServer* server,
     int fd)
   : server(server),
     fd(fd) { }
 
-HTTPWebsocketServer::WebsocketClient::WebsocketClient(WebsocketClient&& other)
+WebsocketServer::WebsocketClient::WebsocketClient(WebsocketClient&& other)
   : server(other.server),
     fd(other.fd) {
   other.fd = -1;
 }
 
-HTTPWebsocketServer::WebsocketClient&
-HTTPWebsocketServer::WebsocketClient::operator=(WebsocketClient&& other) {
+WebsocketServer::WebsocketClient&
+WebsocketServer::WebsocketClient::operator=(WebsocketClient&& other) {
   this->server = other.server;
   this->fd = other.fd;
   other.fd = -1;
   return *this;
 }
 
-HTTPWebsocketServer::WebsocketClient::~WebsocketClient() {
+WebsocketServer::WebsocketClient::~WebsocketClient() {
   if (this->fd >= 0) {
     close(this->fd);
   }
 }
 
-AsyncTask<shared_ptr<HTTPWebsocketServer::WebsocketClient>>
-HTTPWebsocketServer::enable_websockets(HTTPRequest& req) {
+Task<shared_ptr<WebsocketServer::WebsocketClient>>
+WebsocketServer::enable_websockets(Request& req) {
   if (req.get_command() != EVHTTP_REQ_GET) {
     co_return nullptr;
   }
@@ -100,11 +101,11 @@ Sec-WebSocket-Accept: %s\r\n\
   co_return shared_ptr<WebsocketClient>(new WebsocketClient(this, fd));
 }
 
-HTTPWebsocketServer::WebsocketClient::WebsocketMessage::WebsocketMessage()
+WebsocketServer::WebsocketClient::WebsocketMessage::WebsocketMessage()
   : opcode(0) { }
 
-AsyncTask<HTTPWebsocketServer::WebsocketClient::WebsocketMessage>
-HTTPWebsocketServer::WebsocketClient::read() {
+Task<WebsocketServer::WebsocketClient::WebsocketMessage>
+WebsocketServer::WebsocketClient::read() {
   auto& base = this->server->base;
 
   // TODO: We should use evbuffers here to avoid making lots of small read()
@@ -188,7 +189,7 @@ HTTPWebsocketServer::WebsocketClient::read() {
   }
 }
 
-string HTTPWebsocketServer::WebsocketClient::encode_websocket_message_header(
+string WebsocketServer::WebsocketClient::encode_websocket_message_header(
     size_t data_size, uint8_t opcode) {
   string header;
   header.push_back(0x80 | (opcode & 0x0F));
@@ -206,21 +207,23 @@ string HTTPWebsocketServer::WebsocketClient::encode_websocket_message_header(
   return header;
 }
 
-AsyncTask<void> HTTPWebsocketServer::WebsocketClient::write(
+Task<void> WebsocketServer::WebsocketClient::write(
     EvBuffer& buf, uint8_t opcode) {
   string header = this->encode_websocket_message_header(buf.get_length(), opcode);
   co_await this->server->base.write(this->fd, header);
   co_await buf.write(this->fd);
 }
 
-AsyncTask<void> HTTPWebsocketServer::WebsocketClient::write(
+Task<void> WebsocketServer::WebsocketClient::write(
     const std::string& data, uint8_t opcode) {
   return this->write(data.data(), data.size(), opcode);
 }
 
-AsyncTask<void> HTTPWebsocketServer::WebsocketClient::write(
+Task<void> WebsocketServer::WebsocketClient::write(
     const void* data, size_t size, uint8_t opcode) {
   string header = this->encode_websocket_message_header(size, opcode);
   co_await this->server->base.write(this->fd, header);
   co_await this->server->base.write(this->fd, data, size);
 }
+
+} // namespace EventAsync::HTTP

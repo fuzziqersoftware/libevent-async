@@ -8,25 +8,27 @@
 #include <unordered_map>
 #include <string>
 
-#include "EvBuffer.hh"
-#include "EventBase.hh"
-#include "EvDNSBase.hh"
-#include "HTTPRequest.hh"
+#include "../../EvBuffer.hh"
+#include "../../EventBase.hh"
+#include "../../EvDNSBase.hh"
+#include "Request.hh"
 
 
 
-struct HTTPConnection {
-  HTTPConnection(
+namespace EventAsync::HTTP {
+
+struct Connection {
+  Connection(
       EventBase& base,
       EvDNSBase& dns_base,
       const std::string& host,
       uint16_t port,
       SSL_CTX* ssl_ctx = nullptr);
-  HTTPConnection(const HTTPConnection& req) = delete;
-  HTTPConnection(HTTPConnection&& req);
-  HTTPConnection& operator=(const HTTPConnection& req) = delete;
-  HTTPConnection& operator=(HTTPConnection&& req) = delete;
-  ~HTTPConnection();
+  Connection(const Connection& req) = delete;
+  Connection(Connection&& req);
+  Connection& operator=(const Connection& req) = delete;
+  Connection& operator=(Connection&& req) = delete;
+  ~Connection();
 
   static SSL_CTX* create_default_ssl_ctx();
 
@@ -40,21 +42,23 @@ struct HTTPConnection {
 
   class Awaiter {
   public:
-    Awaiter(HTTPRequest& req);
+    Awaiter(Request& req);
     bool await_ready() const noexcept;
     void await_suspend(std::experimental::coroutine_handle<> coro);
     void await_resume();
     void on_response();
   private:
-    HTTPRequest& req;
+    Request& req;
     std::experimental::coroutine_handle<> coro;
   };
 
   Awaiter send_request(
-      HTTPRequest& req,
+      Request& req,
       evhttp_cmd_type method,
       const char* path_and_query);
 
   EventBase& base;
   struct evhttp_connection* conn;
 };
+
+} // namespace EventAsync::HTTP

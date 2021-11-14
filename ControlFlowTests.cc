@@ -3,18 +3,19 @@
 #include <phosg/UnitTest.hh>
 #include <phosg/Time.hh>
 
-#include "AsyncTask.hh"
+#include "Task.hh"
 #include "EventBase.hh"
 
 using namespace std;
+using namespace EventAsync;
 
 
 
-AsyncTask<size_t> test_returns_fn1() {
+Task<size_t> test_returns_fn1() {
   co_return 5;
 }
 
-AsyncTask<size_t> test_returns_fn2() {
+Task<size_t> test_returns_fn2() {
   size_t ret = co_await test_returns_fn1();
   co_return ret + 4;
 }
@@ -26,12 +27,12 @@ DetachedTask test_returns(EventBase& base) {
 
 
 
-AsyncTask<void> test_exceptions_fn1() {
+Task<void> test_exceptions_fn1() {
   throw std::runtime_error("exc");
   co_return;
 }
 
-AsyncTask<void> test_exceptions_fn2() {
+Task<void> test_exceptions_fn2() {
   co_await test_returns_fn1();
   co_return;
 }
