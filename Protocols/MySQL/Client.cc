@@ -16,7 +16,7 @@ using namespace std;
 namespace EventAsync::MySQL {
 
 Client::Client(
-    EventBase& base,
+    Base& base,
     const char* hostname,
     uint16_t port,
     const char* username,

@@ -5,14 +5,14 @@
 
 #include "Connection.hh"
 #include "Request.hh"
-#include "../../EvDNSBase.hh"
+#include "../../DNSBase.hh"
 
 using namespace std;
 
 
 
 EventAsync::DetachedTask make_request(
-    EventAsync::EventBase& base,
+    EventAsync::Base& base,
     const char* host,
     uint16_t port,
     const char* path) {
@@ -23,7 +23,7 @@ EventAsync::DetachedTask make_request(
         EventAsync::HTTP::Connection::create_default_ssl_ctx(),
         SSL_CTX_free);
   }
-  EventAsync::EvDNSBase dns_base(base);
+  EventAsync::DNSBase dns_base(base);
   EventAsync::HTTP::Connection conn(base, dns_base, host, port, ssl_ctx.get());
   EventAsync::HTTP::Request req(base);
   req.add_output_header("Connection", "close");
@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     throw invalid_argument("Usage: HTTPClientExample hostname port request_path");
   }
 
-  EventAsync::EventBase base;
+  EventAsync::Base base;
   make_request(base, argv[1], atoi(argv[2]), argv[3]);
   base.run();
   return 0;

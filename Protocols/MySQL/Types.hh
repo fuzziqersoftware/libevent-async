@@ -3,13 +3,8 @@
 #include <stdint.h>
 
 #include <string>
-#include <phosg/Filesystem.hh>
-#include "../../Task.hh"
-#include "../../EventBase.hh"
-#include "../../EvDNSBase.hh"
-#include "../../EvBuffer.hh"
-
-#include "ProtocolBuffer.hh"
+#include <variant>
+#include <vector>
 
 
 

@@ -12,8 +12,8 @@
 #include <string>
 #include <unordered_map>
 
-#include "../../EventBase.hh"
-#include "../../EvBuffer.hh"
+#include "../../Base.hh"
+#include "../../Buffer.hh"
 #include "../../Task.hh"
 #include "Request.hh"
 
@@ -23,7 +23,7 @@ namespace EventAsync::HTTP {
 
 class Server {
 public:
-  Server(EventBase& base, SSL_CTX* ssl_ctx);
+  Server(Base& base, SSL_CTX* ssl_ctx);
   Server(const Server&) = delete;
   Server(Server&&) = delete;
   Server& operator=(const Server&) = delete;
@@ -41,7 +41,7 @@ public:
   void set_server_name(const char* server_name);
 
 protected:
-  EventBase& base;
+  Base& base;
   struct evhttp* http;
   struct evhttp* ssl_http;
   SSL_CTX* ssl_ctx;
@@ -64,7 +64,7 @@ protected:
       Request& req,
       int code,
       const char* content_type,
-      EvBuffer& b);
+      Buffer& b);
   void send_response(
       Request& req,
       int code,
@@ -94,7 +94,7 @@ protected:
     Task<WebsocketMessage> read();
 
     // Sends a Websocket message to the client.
-    Task<void> write(EvBuffer& buf, uint8_t opcode = 0x01);
+    Task<void> write(Buffer& buf, uint8_t opcode = 0x01);
     Task<void> write(const std::string& data, uint8_t opcode = 0x01);
     Task<void> write(const void* data, size_t size, uint8_t opcode = 0x01);
 

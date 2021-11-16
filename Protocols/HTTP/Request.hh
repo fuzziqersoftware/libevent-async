@@ -6,15 +6,15 @@
 #include <unordered_map>
 #include <string>
 
-#include "../../EvBuffer.hh"
+#include "../../Buffer.hh"
 
 
 
 namespace EventAsync::HTTP {
 
 struct Request {
-  Request(EventBase& base);
-  Request(EventBase& base, struct evhttp_request* req);
+  Request(Base& base);
+  Request(Base& base, struct evhttp_request* req);
   Request(const Request& req) = delete;
   Request(Request&& req);
   Request& operator=(const Request& req) = delete;
@@ -35,8 +35,8 @@ struct Request {
   const struct evhttp_uri* get_evhttp_uri() const;
   const char* get_host() const;
 
-  EvBuffer get_input_buffer();
-  EvBuffer get_output_buffer();
+  Buffer get_input_buffer();
+  Buffer get_output_buffer();
 
   struct evkeyvalq* get_input_headers();
   struct evkeyvalq* get_output_headers();
@@ -46,7 +46,7 @@ struct Request {
   int get_response_code();
   const char* get_uri();
 
-  EventBase& base;
+  Base& base;
   struct evhttp_request* req;
   bool owned;
 

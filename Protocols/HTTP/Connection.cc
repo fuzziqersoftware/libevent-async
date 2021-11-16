@@ -14,8 +14,8 @@ using namespace std::experimental;
 namespace EventAsync::HTTP {
 
 Connection::Connection(
-      EventBase& base,
-      EvDNSBase& dns_base,
+      Base& base,
+      DNSBase& dns_base,
       const string& host,
       uint16_t port,
       SSL_CTX* ssl_ctx)

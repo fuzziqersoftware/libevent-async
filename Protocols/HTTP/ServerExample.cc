@@ -10,7 +10,7 @@ using namespace std;
 
 class ExampleHTTPServer : public EventAsync::HTTP::Server {
 public:
-  ExampleHTTPServer(EventAsync::EventBase& base) : Server(base, nullptr) { }
+  ExampleHTTPServer(EventAsync::Base& base) : Server(base, nullptr) { }
 
 protected:
   virtual EventAsync::DetachedTask handle_request(
@@ -27,7 +27,7 @@ protected:
 };
 
 int main(int argc, char** argv) {
-  EventAsync::EventBase base;
+  EventAsync::Base base;
   ExampleHTTPServer server(base);
   server.add_socket(listen("", 5050, SOMAXCONN));
   base.run();

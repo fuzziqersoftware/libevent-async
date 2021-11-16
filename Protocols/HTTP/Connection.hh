@@ -8,9 +8,9 @@
 #include <unordered_map>
 #include <string>
 
-#include "../../EvBuffer.hh"
-#include "../../EventBase.hh"
-#include "../../EvDNSBase.hh"
+#include "../../Buffer.hh"
+#include "../../Base.hh"
+#include "../../DNSBase.hh"
 #include "Request.hh"
 
 
@@ -19,8 +19,8 @@ namespace EventAsync::HTTP {
 
 struct Connection {
   Connection(
-      EventBase& base,
-      EvDNSBase& dns_base,
+      Base& base,
+      DNSBase& dns_base,
       const std::string& host,
       uint16_t port,
       SSL_CTX* ssl_ctx = nullptr);
@@ -57,7 +57,7 @@ struct Connection {
       evhttp_cmd_type method,
       const char* path_and_query);
 
-  EventBase& base;
+  Base& base;
   struct evhttp_connection* conn;
 };
 

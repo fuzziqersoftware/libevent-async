@@ -6,7 +6,7 @@
 #include <functional>
 #include <memory>
 
-#include "EventBase.hh"
+#include "Base.hh"
 
 
 
@@ -14,14 +14,14 @@ namespace EventAsync {
 
 // TODO: support evdns_server functions
 
-class EvDNSBase {
+class DNSBase {
 public:
-  EvDNSBase(EventBase& base);
-  EvDNSBase(const EvDNSBase& base) = delete;
-  EvDNSBase(EvDNSBase&& base);
-  EvDNSBase& operator=(const EvDNSBase& base) = delete;
-  EvDNSBase& operator=(EvDNSBase&& base);
-  ~EvDNSBase();
+  DNSBase(Base& base);
+  DNSBase(const DNSBase& base) = delete;
+  DNSBase(DNSBase&& base);
+  DNSBase& operator=(const DNSBase& base) = delete;
+  DNSBase& operator=(DNSBase&& base);
+  ~DNSBase();
 
   void resolv_conf_parse(int flags, const char* filename);
 #ifdef WIN32

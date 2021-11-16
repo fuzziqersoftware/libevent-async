@@ -3,22 +3,22 @@
 #include <stdint.h>
 
 #include <string>
-#include "../../EvBuffer.hh"
+#include "../../Buffer.hh"
 
 
 
 namespace EventAsync::MySQL {
 
-class ProtocolBuffer : public EvBuffer {
+class ProtocolBuffer : public Buffer {
 public:
-  using EvBuffer::EvBuffer;
+  using Buffer::Buffer;
   virtual ~ProtocolBuffer() = default;
 
   // Command sending/receiving
   Task<uint8_t> read_command(int fd); // returns sequence number
   Task<void> write_command(int fd, uint8_t seq);
 
-  // Integer types (EvBuffer already provides 8/16/32/64)
+  // Integer types (Buffer already provides 8/16/32/64)
   // Warning: these functions do not consider the endianness of the system; it
   // appears the MySQL protocol uses little-endian integers, so these will only
   // work on little-endian systems.

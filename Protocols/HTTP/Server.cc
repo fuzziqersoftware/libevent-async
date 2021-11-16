@@ -94,7 +94,7 @@ const unordered_map<int, const char*> Server::explanation_for_response_code({
 
 
 
-Server::Server(EventBase& base, SSL_CTX* ssl_ctx)
+Server::Server(Base& base, SSL_CTX* ssl_ctx)
   : base(base), http(nullptr), ssl_http(nullptr), ssl_ctx(ssl_ctx) { }
 
 Server::~Server() {
@@ -160,7 +160,7 @@ void Server::dispatch_handle_request(
 }
 
 void Server::send_response(Request& req, int code,
-    const char* content_type, EvBuffer& buf) {
+    const char* content_type, Buffer& buf) {
 
   req.add_output_header("Content-Type", content_type);
   if (!this->server_name.empty()) {
@@ -176,7 +176,7 @@ void Server::send_response(Request& req, int code,
 
 void Server::send_response(Request& req, int code,
     const char* content_type, const char* fmt, ...) {
-  EvBuffer out_buffer(this->base);
+  Buffer out_buffer(this->base);
 
   va_list va;
   va_start(va, fmt);
@@ -262,7 +262,7 @@ Task<shared_ptr<Server::WebsocketClient>> Server::enable_websockets(
 
   // Send the HTTP reply, which enables websockets on the client side. All
   // communication after this will use the websocket protocol.
-  EvBuffer buf(this->base);
+  Buffer buf(this->base);
   buf.add_printf("HTTP/1.1 101 Switching Protocols\r\n\
 Upgrade: websocket\r\n\
 Connection: upgrade\r\n\
@@ -378,8 +378,7 @@ string Server::WebsocketClient::encode_websocket_message_header(
   return header;
 }
 
-Task<void> Server::WebsocketClient::write(
-    EvBuffer& buf, uint8_t opcode) {
+Task<void> Server::WebsocketClient::write(Buffer& buf, uint8_t opcode) {
   string header = this->encode_websocket_message_header(buf.get_length(), opcode);
   co_await this->server->base.write(this->fd, header);
   co_await buf.write(this->fd);

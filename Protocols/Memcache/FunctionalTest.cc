@@ -7,7 +7,7 @@ using namespace std;
 
 
 
-EventAsync::DetachedTask main_async(EventAsync::EventBase& base, uint16_t port) {
+EventAsync::DetachedTask main_async(EventAsync::Base& base, uint16_t port) {
   EventAsync::Memcache::Client client(base, "localhost", port);
 
   fprintf(stderr, "-- connect\n");
@@ -248,7 +248,7 @@ int main(int argc, char** argv) {
 
   uint16_t port = (argc == 2) ? atoi(argv[1]) : 11211;
 
-  EventAsync::EventBase base;
+  EventAsync::Base base;
   main_async(base, port);
   base.run();
   return 0;

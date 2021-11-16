@@ -1,5 +1,5 @@
 #include "Event.hh"
-#include "EventBase.hh"
+#include "Base.hh"
 
 #include <phosg/Time.hh>
 
@@ -13,7 +13,7 @@ namespace EventAsync {
 Event::Event() : ev(nullptr) { }
 
 Event::Event(
-    EventBase& base,
+    Base& base,
     evutil_socket_t fd,
     short what,
     void (*cb)(evutil_socket_t fd, short what, void* ctx),
@@ -63,7 +63,7 @@ void Event::del() {
 
 
 TimeoutEvent::TimeoutEvent(
-    EventBase& base,
+    Base& base,
     uint64_t timeout,
     void (*cb)(evutil_socket_t fd, short what, void* ctx),
     void* ctx)
@@ -79,7 +79,7 @@ void TimeoutEvent::add() {
 
 
 SignalEvent::SignalEvent(
-    EventBase& base,
+    Base& base,
     int signum,
     void (*cb)(evutil_socket_t fd, short what, void* ctx),
     void* ctx)
@@ -87,7 +87,7 @@ SignalEvent::SignalEvent(
 
 
 
-EventAwaiter::EventAwaiter(EventBase& base, evutil_socket_t fd, short what)
+EventAwaiter::EventAwaiter(Base& base, evutil_socket_t fd, short what)
   : event(base, fd, what, &EventAwaiter::on_trigger, this), coro(nullptr) { }
 
 bool EventAwaiter::await_ready() const {
@@ -109,7 +109,7 @@ void EventAwaiter::on_trigger(evutil_socket_t fd, short what, void* ctx) {
 
 
 
-TimeoutAwaiter::TimeoutAwaiter(EventBase& base, uint64_t timeout)
+TimeoutAwaiter::TimeoutAwaiter(Base& base, uint64_t timeout)
   : event(base, timeout, &TimeoutAwaiter::on_trigger, this), coro(nullptr) { }
 
 bool TimeoutAwaiter::await_ready() const {

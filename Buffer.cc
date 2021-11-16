@@ -1,4 +1,4 @@
-#include "EvBuffer.hh"
+#include "Buffer.hh"
 
 #include <phosg/Encoding.hh>
 #include <phosg/Strings.hh>
@@ -10,66 +10,66 @@ using namespace std::experimental;
 
 namespace EventAsync {
 
-EvBuffer::EvBuffer(EventBase& base)
+Buffer::Buffer(Base& base)
   : base(base), buf(evbuffer_new()), owned(true) {
   if (!this->buf) {
     throw bad_alloc();
   }
 }
 
-EvBuffer::EvBuffer(EventBase& base, struct evbuffer* buf)
+Buffer::Buffer(Base& base, struct evbuffer* buf)
   : base(base), buf(buf), owned(false) { }
 
-EvBuffer::EvBuffer(EvBuffer&& other) : base(other.base), buf(other.buf) {
+Buffer::Buffer(Buffer&& other) : base(other.base), buf(other.buf) {
   other.buf = nullptr;
   other.owned = false;
 }
 
-EvBuffer::~EvBuffer() {
+Buffer::~Buffer() {
   if (this->owned) {
     evbuffer_free(this->buf);
   }
 }
 
-void EvBuffer::enable_locking(void* lock) {
+void Buffer::enable_locking(void* lock) {
   if (evbuffer_enable_locking(this->buf, lock)) {
     throw runtime_error("evbuffer_enable_locking");
   }
 }
 
-void EvBuffer::lock() {
+void Buffer::lock() {
   evbuffer_lock(this->buf);
 }
 
-void EvBuffer::unlock() {
+void Buffer::unlock() {
   evbuffer_unlock(this->buf);
 }
 
-size_t EvBuffer::get_length() const {
+size_t Buffer::get_length() const {
   return evbuffer_get_length(this->buf);
 }
 
-size_t EvBuffer::get_contiguous_space() const {
+size_t Buffer::get_contiguous_space() const {
   return evbuffer_get_contiguous_space(this->buf);
 }
 
-void EvBuffer::expand(size_t size) {
+void Buffer::expand(size_t size) {
   if (evbuffer_expand(this->buf, size)) {
     throw runtime_error("evbuffer_expand");
   }
 }
 
-void EvBuffer::add(const void* data, size_t size) {
+void Buffer::add(const void* data, size_t size) {
   if (evbuffer_add(this->buf, data, size)) {
     throw runtime_error("evbuffer_add");
   }
 }
 
-void EvBuffer::add(const string& data) {
+void Buffer::add(const string& data) {
   this->add(data.data(), data.size());
 }
 
-size_t EvBuffer::add_printf(const char* fmt, ...) {
+size_t Buffer::add_printf(const char* fmt, ...) {
   va_list va;
   va_start(va, fmt);
   int ret = evbuffer_add_vprintf(this->buf, fmt, va);
@@ -80,7 +80,7 @@ size_t EvBuffer::add_printf(const char* fmt, ...) {
   return ret;
 }
 
-size_t EvBuffer::add_vprintf(const char* fmt, va_list va) {
+size_t Buffer::add_vprintf(const char* fmt, va_list va) {
   int ret = evbuffer_add_vprintf(this->buf, fmt, va);
   if (ret < 0) {
     throw runtime_error("evbuffer_add_vprintf");
@@ -88,19 +88,19 @@ size_t EvBuffer::add_vprintf(const char* fmt, va_list va) {
   return ret;
 }
 
-void EvBuffer::add_buffer(struct evbuffer* src) {
+void Buffer::add_buffer(struct evbuffer* src) {
   if (evbuffer_add_buffer(this->buf, src)) {
     throw runtime_error("evbuffer_add_buffer");
   }
 }
 
-void EvBuffer::add_buffer(EvBuffer& src) {
+void Buffer::add_buffer(Buffer& src) {
   if (evbuffer_add_buffer(this->buf, src.buf)) {
     throw runtime_error("evbuffer_add_buffer");
   }
 }
 
-size_t EvBuffer::remove_buffer(struct evbuffer* src, size_t size) {
+size_t Buffer::remove_buffer(struct evbuffer* src, size_t size) {
   int ret = evbuffer_remove_buffer(this->buf, src, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_remove_buffer");
@@ -108,7 +108,7 @@ size_t EvBuffer::remove_buffer(struct evbuffer* src, size_t size) {
   return ret;
 }
 
-size_t EvBuffer::remove_buffer(EvBuffer& src, size_t size) {
+size_t Buffer::remove_buffer(Buffer& src, size_t size) {
   int ret = evbuffer_remove_buffer(this->buf, src.buf, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_remove_buffer");
@@ -116,25 +116,25 @@ size_t EvBuffer::remove_buffer(EvBuffer& src, size_t size) {
   return ret;
 }
 
-void EvBuffer::prepend(const void* data, size_t size) {
+void Buffer::prepend(const void* data, size_t size) {
   if (evbuffer_prepend(this->buf, data, size)) {
     throw runtime_error("evbuffer_prepend");
   }
 }
 
-void EvBuffer::prepend_buffer(struct evbuffer* src) {
+void Buffer::prepend_buffer(struct evbuffer* src) {
   if (evbuffer_prepend_buffer(this->buf, src)) {
     throw runtime_error("evbuffer_prepend_buffer");
   }
 }
 
-void EvBuffer::prepend_buffer(EvBuffer& src) {
+void Buffer::prepend_buffer(Buffer& src) {
   if (evbuffer_prepend_buffer(this->buf, src.buf)) {
     throw runtime_error("evbuffer_prepend_buffer");
   }
 }
 
-uint8_t* EvBuffer::pullup(ssize_t size) {
+uint8_t* Buffer::pullup(ssize_t size) {
   uint8_t* ret = evbuffer_pullup(this->buf, size);
   if (!ret) {
     throw runtime_error("evbuffer_pullup");
@@ -142,17 +142,17 @@ uint8_t* EvBuffer::pullup(ssize_t size) {
   return ret;
 }
 
-void EvBuffer::drain(size_t size) {
+void Buffer::drain(size_t size) {
   if (evbuffer_drain(this->buf, size)) {
     throw runtime_error("evbuffer_drain");
   }
 }
 
-void EvBuffer::drain_all() {
+void Buffer::drain_all() {
   this->drain(this->get_length());
 }
 
-size_t EvBuffer::remove(void* data, size_t size) {
+size_t Buffer::remove(void* data, size_t size) {
   int ret = evbuffer_remove(this->buf, data, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_remove");
@@ -160,14 +160,14 @@ size_t EvBuffer::remove(void* data, size_t size) {
   return ret;
 }
 
-string EvBuffer::remove(size_t size) {
+string Buffer::remove(size_t size) {
   // TODO: eliminate this unnecessary initialization
   string data(size, '\0');
   data.resize(this->remove(const_cast<char*>(data.data()), size));
   return data;
 }
 
-void EvBuffer::remove_exactly(void* data, size_t size) {
+void Buffer::remove_exactly(void* data, size_t size) {
   int ret = evbuffer_remove(this->buf, data, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_remove");
@@ -176,14 +176,14 @@ void EvBuffer::remove_exactly(void* data, size_t size) {
   }
 }
 
-string EvBuffer::remove_exactly(size_t size) {
+string Buffer::remove_exactly(size_t size) {
   // TODO: eliminate this unnecessary initialization
   string data(size, '\0');
   this->remove_exactly(const_cast<char*>(data.data()), size);
   return data;
 }
 
-size_t EvBuffer::copyout(void* data, size_t size) {
+size_t Buffer::copyout(void* data, size_t size) {
   ssize_t ret = evbuffer_copyout(this->buf, data, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_copyout");
@@ -191,14 +191,14 @@ size_t EvBuffer::copyout(void* data, size_t size) {
   return ret;
 }
 
-string EvBuffer::copyout(size_t size) {
+string Buffer::copyout(size_t size) {
   // TODO: eliminate this unnecessary initialization
   string data(size, '\0');
   data.resize(this->copyout(const_cast<char*>(data.data()), size));
   return data;
 }
 
-void EvBuffer::copyout_exactly(void* data, size_t size) {
+void Buffer::copyout_exactly(void* data, size_t size) {
   int ret = evbuffer_copyout(this->buf, data, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_copyout");
@@ -207,14 +207,14 @@ void EvBuffer::copyout_exactly(void* data, size_t size) {
   }
 }
 
-string EvBuffer::copyout_exactly(size_t size) {
+string Buffer::copyout_exactly(size_t size) {
   // TODO: eliminate this unnecessary initialization
   string data(size, '\0');
   this->copyout_exactly(const_cast<char*>(data.data()), size);
   return data;
 }
 
-size_t EvBuffer::copyout_from(const struct evbuffer_ptr* pos, void* data, size_t size) {
+size_t Buffer::copyout_from(const struct evbuffer_ptr* pos, void* data, size_t size) {
   ssize_t ret = evbuffer_copyout_from(this->buf, pos, data, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_copyout_from");
@@ -222,14 +222,14 @@ size_t EvBuffer::copyout_from(const struct evbuffer_ptr* pos, void* data, size_t
   return ret;
 }
 
-string EvBuffer::copyout_from(const struct evbuffer_ptr* pos, size_t size) {
+string Buffer::copyout_from(const struct evbuffer_ptr* pos, size_t size) {
   // TODO: eliminate this unnecessary initialization
   string data(size, '\0');
   data.resize(this->copyout_from(pos, const_cast<char*>(data.data()), size));
   return data;
 }
 
-void EvBuffer::copyout_from_exactly(const struct evbuffer_ptr* pos, void* data, size_t size) {
+void Buffer::copyout_from_exactly(const struct evbuffer_ptr* pos, void* data, size_t size) {
   ssize_t ret = evbuffer_copyout_from(this->buf, pos, data, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_copyout_from");
@@ -238,183 +238,183 @@ void EvBuffer::copyout_from_exactly(const struct evbuffer_ptr* pos, void* data, 
   }
 }
 
-string EvBuffer::copyout_from_exactly(const struct evbuffer_ptr* pos, size_t size) {
+string Buffer::copyout_from_exactly(const struct evbuffer_ptr* pos, size_t size) {
   // TODO: eliminate this unnecessary initialization
   string data(size, '\0');
   this->copyout_from_exactly(pos, const_cast<char*>(data.data()), size);
   return data;
 }
 
-void EvBuffer::add_u8(uint8_t v) {
+void Buffer::add_u8(uint8_t v) {
   this->add<uint8_t>(v);
 }
 
-void EvBuffer::add_s8(int8_t v) {
+void Buffer::add_s8(int8_t v) {
   this->add<int8_t>(v);
 }
 
-void EvBuffer::add_u16(uint16_t v) {
+void Buffer::add_u16(uint16_t v) {
   this->add<uint16_t>(v);
 }
 
-void EvBuffer::add_s16(int16_t v) {
+void Buffer::add_s16(int16_t v) {
   this->add<int16_t>(v);
 }
 
-void EvBuffer::add_u16r(uint16_t v) {
+void Buffer::add_u16r(uint16_t v) {
   this->add<uint16_t>(bswap16(v));
 }
 
-void EvBuffer::add_s16r(int16_t v) {
+void Buffer::add_s16r(int16_t v) {
   this->add<int16_t>(bswap16(v));
 }
 
-void EvBuffer::add_u32(uint32_t v) {
+void Buffer::add_u32(uint32_t v) {
   this->add<uint32_t>(v);
 }
 
-void EvBuffer::add_s32(int32_t v) {
+void Buffer::add_s32(int32_t v) {
   this->add<int32_t>(v);
 }
 
-void EvBuffer::add_u32r(uint32_t v) {
+void Buffer::add_u32r(uint32_t v) {
   this->add<uint32_t>(bswap32(v));
 }
 
-void EvBuffer::add_s32r(int32_t v) {
+void Buffer::add_s32r(int32_t v) {
   this->add<int32_t>(bswap32(v));
 }
 
-void EvBuffer::add_u64(uint64_t v) {
+void Buffer::add_u64(uint64_t v) {
   this->add<uint64_t>(v);
 }
 
-void EvBuffer::add_s64(int64_t v) {
+void Buffer::add_s64(int64_t v) {
   this->add<int64_t>(v);
 }
 
-void EvBuffer::add_u64r(uint64_t v) {
+void Buffer::add_u64r(uint64_t v) {
   this->add<uint64_t>(bswap64(v));
 }
 
-void EvBuffer::add_s64r(int64_t v) {
+void Buffer::add_s64r(int64_t v) {
   this->add<int64_t>(bswap64(v));
 }
 
-uint8_t EvBuffer::remove_u8() {
+uint8_t Buffer::remove_u8() {
   return this->remove<uint8_t>();
 }
 
-int8_t EvBuffer::remove_s8() {
+int8_t Buffer::remove_s8() {
   return this->remove<int8_t>();
 }
 
-uint16_t EvBuffer::remove_u16() {
+uint16_t Buffer::remove_u16() {
   return this->remove<uint16_t>();
 }
 
-int16_t EvBuffer::remove_s16() {
+int16_t Buffer::remove_s16() {
   return this->remove<int16_t>();
 }
 
-uint16_t EvBuffer::remove_u16r() {
+uint16_t Buffer::remove_u16r() {
   return bswap16(this->remove<uint16_t>());
 }
 
-int16_t EvBuffer::remove_s16r() {
+int16_t Buffer::remove_s16r() {
   return bswap16(this->remove<int16_t>());
 }
 
-uint32_t EvBuffer::remove_u32() {
+uint32_t Buffer::remove_u32() {
   return this->remove<uint32_t>();
 }
 
-int32_t EvBuffer::remove_s32() {
+int32_t Buffer::remove_s32() {
   return this->remove<int32_t>();
 }
 
-uint32_t EvBuffer::remove_u32r() {
+uint32_t Buffer::remove_u32r() {
   return bswap32(this->remove<uint32_t>());
 }
 
-int32_t EvBuffer::remove_s32r() {
+int32_t Buffer::remove_s32r() {
   return bswap32(this->remove<int32_t>());
 }
 
-uint64_t EvBuffer::remove_u64() {
+uint64_t Buffer::remove_u64() {
   return this->remove<uint64_t>();
 }
 
-int64_t EvBuffer::remove_s64() {
+int64_t Buffer::remove_s64() {
   return this->remove<int64_t>();
 }
 
-uint64_t EvBuffer::remove_u64r() {
+uint64_t Buffer::remove_u64r() {
   return bswap64(this->remove<uint64_t>());
 }
 
-int64_t EvBuffer::remove_s64r() {
+int64_t Buffer::remove_s64r() {
   return bswap64(this->remove<int64_t>());
 }
 
-uint8_t EvBuffer::copyout_u8() {
+uint8_t Buffer::copyout_u8() {
   return this->copyout<uint8_t>();
 }
 
-int8_t EvBuffer::copyout_s8() {
+int8_t Buffer::copyout_s8() {
   return this->copyout<int8_t>();
 }
 
-uint16_t EvBuffer::copyout_u16() {
+uint16_t Buffer::copyout_u16() {
   return this->copyout<uint16_t>();
 }
 
-int16_t EvBuffer::copyout_s16() {
+int16_t Buffer::copyout_s16() {
   return this->copyout<int16_t>();
 }
 
-uint16_t EvBuffer::copyout_u16r() {
+uint16_t Buffer::copyout_u16r() {
   return bswap16(this->copyout<uint16_t>());
 }
 
-int16_t EvBuffer::copyout_s16r() {
+int16_t Buffer::copyout_s16r() {
   return bswap16(this->copyout<int16_t>());
 }
 
-uint32_t EvBuffer::copyout_u32() {
+uint32_t Buffer::copyout_u32() {
   return this->copyout<uint32_t>();
 }
 
-int32_t EvBuffer::copyout_s32() {
+int32_t Buffer::copyout_s32() {
   return this->copyout<int32_t>();
 }
 
-uint32_t EvBuffer::copyout_u32r() {
+uint32_t Buffer::copyout_u32r() {
   return bswap32(this->copyout<uint32_t>());
 }
 
-int32_t EvBuffer::copyout_s32r() {
+int32_t Buffer::copyout_s32r() {
   return bswap32(this->copyout<int32_t>());
 }
 
-uint64_t EvBuffer::copyout_u64() {
+uint64_t Buffer::copyout_u64() {
   return this->copyout<uint64_t>();
 }
 
-int64_t EvBuffer::copyout_s64() {
+int64_t Buffer::copyout_s64() {
   return this->copyout<int64_t>();
 }
 
-uint64_t EvBuffer::copyout_u64r() {
+uint64_t Buffer::copyout_u64r() {
   return bswap64(this->copyout<uint64_t>());
 }
 
-int64_t EvBuffer::copyout_s64r() {
+int64_t Buffer::copyout_s64r() {
   return bswap64(this->copyout<int64_t>());
 }
 
 
-string EvBuffer::readln(enum evbuffer_eol_style eol_style) {
+string Buffer::readln(enum evbuffer_eol_style eol_style) {
   size_t bytes_read;
   char* ret = evbuffer_readln(this->buf, &bytes_read, eol_style);
   if (ret) {
@@ -428,42 +428,42 @@ string EvBuffer::readln(enum evbuffer_eol_style eol_style) {
   }
 }
 
-struct evbuffer_ptr EvBuffer::search(const char* what, size_t size,
+struct evbuffer_ptr Buffer::search(const char* what, size_t size,
     const struct evbuffer_ptr* start) {
   return evbuffer_search(this->buf, what, size, start);
 }
-struct evbuffer_ptr EvBuffer::search_range(const char* what, size_t size,
+struct evbuffer_ptr Buffer::search_range(const char* what, size_t size,
     const struct evbuffer_ptr *start, const struct evbuffer_ptr *end) {
   return evbuffer_search_range(this->buf, what, size, start, end);
 }
-struct evbuffer_ptr EvBuffer::search_eol(struct evbuffer_ptr* start,
+struct evbuffer_ptr Buffer::search_eol(struct evbuffer_ptr* start,
     size_t* bytes_found, enum evbuffer_eol_style eol_style) {
   return evbuffer_search_eol(this->buf, start, bytes_found, eol_style);
 }
 
-void EvBuffer::ptr_set(struct evbuffer_ptr* pos, size_t position,
+void Buffer::ptr_set(struct evbuffer_ptr* pos, size_t position,
     enum evbuffer_ptr_how how) {
   if (evbuffer_ptr_set(this->buf, pos, position, how)) {
     throw runtime_error("evbuffer_ptr_set");
   }
 }
 
-int EvBuffer::peek(ssize_t size, struct evbuffer_ptr* start_at,
+int Buffer::peek(ssize_t size, struct evbuffer_ptr* start_at,
     struct evbuffer_iovec* vec_out, int n_vec) {
   return evbuffer_peek(this->buf, size, start_at, vec_out, n_vec);
 }
 
-int EvBuffer::reserve_space(ev_ssize_t size, struct evbuffer_iovec* vec, int n_vecs) {
+int Buffer::reserve_space(ev_ssize_t size, struct evbuffer_iovec* vec, int n_vecs) {
   return evbuffer_reserve_space(this->buf, size, vec, n_vecs);
 }
 
-void EvBuffer::commit_space(struct evbuffer_iovec* vec, int n_vecs) {
+void Buffer::commit_space(struct evbuffer_iovec* vec, int n_vecs) {
   if (evbuffer_commit_space(this->buf, vec, n_vecs)) {
     throw runtime_error("evbuffer_commit_space");
   }
 }
 
-void EvBuffer::add_reference(const void* data, size_t size,
+void Buffer::add_reference(const void* data, size_t size,
     void (*cleanup_fn)(const void* data, size_t size, void* ctx), void* ctx) {
   if (evbuffer_add_reference(this->buf, data, size, cleanup_fn, ctx)) {
     throw runtime_error("evbuffer_add_reference");
@@ -476,7 +476,7 @@ static void dispatch_cxx_cleanup_fn(const void* data, size_t size, void* ctx) {
   delete fn;
 }
 
-void EvBuffer::add_reference(const void* data, size_t size,
+void Buffer::add_reference(const void* data, size_t size,
     function<void(const void* data, size_t size)> cleanup_fn) {
   // TODO: can we do this without an extra allocation?
   auto* fn_copy = new function<void(const void* data, size_t size)>(cleanup_fn);
@@ -492,7 +492,7 @@ static void dispatch_delete_string(const void* data, size_t size, void* ctx) {
   delete s;
 }
 
-void EvBuffer::add(string&& data) {
+void Buffer::add(string&& data) {
   string* s = new string(move(data));
   int ret = evbuffer_add_reference(this->buf, s->data(), s->size(),
       dispatch_delete_string, s);
@@ -503,53 +503,53 @@ void EvBuffer::add(string&& data) {
   }
 }
 
-void EvBuffer::add_file(int fd, off_t offset, size_t size) {
+void Buffer::add_file(int fd, off_t offset, size_t size) {
   if (evbuffer_add_file(this->buf, fd, offset, size)) {
     throw runtime_error("evbuffer_add_file");
   }
 }
 
-void EvBuffer::add_buffer_reference(struct evbuffer* other_buf) {
+void Buffer::add_buffer_reference(struct evbuffer* other_buf) {
   if (evbuffer_add_buffer_reference(this->buf, other_buf)) {
     throw runtime_error("evbuffer_add_buffer_reference");
   }
 }
 
-void EvBuffer::add_buffer_reference(EvBuffer& other_buf) {
+void Buffer::add_buffer_reference(Buffer& other_buf) {
   if (evbuffer_add_buffer_reference(this->buf, other_buf.buf)) {
     throw runtime_error("evbuffer_add_buffer_reference");
   }
 }
 
-void EvBuffer::freeze(int at_front) {
+void Buffer::freeze(int at_front) {
   if (evbuffer_freeze(this->buf, at_front)) {
     throw runtime_error("evbuffer_freeze");
   }
 }
 
-void EvBuffer::unfreeze(int at_front) {
+void Buffer::unfreeze(int at_front) {
   if (evbuffer_unfreeze(this->buf, at_front)) {
     throw runtime_error("evbuffer_unfreeze");
   }
 }
 
-void EvBuffer::debug_print_contents(FILE* stream) {
+void Buffer::debug_print_contents(FILE* stream) {
   size_t size = this->get_length();
   if (size) {
     print_data(stream, this->copyout(size));
   }
 }
 
-EvBuffer::ReadAtMostAwaiter EvBuffer::read(evutil_socket_t fd, ssize_t size) {
+Buffer::ReadAtMostAwaiter Buffer::read(evutil_socket_t fd, ssize_t size) {
   return ReadAtMostAwaiter(*this, fd, size);
 }
 
-EvBuffer::ReadExactlyAwaiter EvBuffer::read_exactly(
+Buffer::ReadExactlyAwaiter Buffer::read_exactly(
     evutil_socket_t fd, size_t size) {
   return ReadExactlyAwaiter(*this, fd, static_cast<ssize_t>(size));
 }
 
-EvBuffer::ReadExactlyAwaiter EvBuffer::read_to(
+Buffer::ReadExactlyAwaiter Buffer::read_to(
     evutil_socket_t fd, size_t size) {
   if (size <= this->get_length()) {
     return ReadExactlyAwaiter(*this, fd, 0);
@@ -558,14 +558,14 @@ EvBuffer::ReadExactlyAwaiter EvBuffer::read_to(
   }
 }
 
-EvBuffer::WriteAwaiter EvBuffer::write(evutil_socket_t fd, ssize_t size) {
+Buffer::WriteAwaiter Buffer::write(evutil_socket_t fd, ssize_t size) {
   return WriteAwaiter(*this, fd, size);
 }
 
 
 
-EvBuffer::ReadAwaiter::ReadAwaiter(
-    EvBuffer& buf,
+Buffer::ReadAwaiter::ReadAwaiter(
+    Buffer& buf,
     evutil_socket_t fd,
     ssize_t limit,
     void (*cb)(evutil_socket_t, short, void*))
@@ -576,29 +576,29 @@ EvBuffer::ReadAwaiter::ReadAwaiter(
     err(false),
     coro(nullptr) { }
 
-bool EvBuffer::ReadAwaiter::await_ready() const noexcept {
+bool Buffer::ReadAwaiter::await_ready() const noexcept {
   return (this->bytes_read >= this->limit);
 }
 
-void EvBuffer::ReadAwaiter::await_suspend(coroutine_handle<> coro) {
+void Buffer::ReadAwaiter::await_suspend(coroutine_handle<> coro) {
   this->coro = coro;
   this->event.add();
 }
 
-EvBuffer::ReadAtMostAwaiter::ReadAtMostAwaiter(
-    EvBuffer& buf,
+Buffer::ReadAtMostAwaiter::ReadAtMostAwaiter(
+    Buffer& buf,
     evutil_socket_t fd,
     ssize_t limit)
   : ReadAwaiter(buf, fd, limit, &ReadAtMostAwaiter::on_read_ready) { }
 
-size_t EvBuffer::ReadAtMostAwaiter::await_resume() {
+size_t Buffer::ReadAtMostAwaiter::await_resume() {
   if (this->err) {
     throw runtime_error("failed to read from fd");
   }
   return this->bytes_read;
 }
 
-void EvBuffer::ReadAtMostAwaiter::on_read_ready(evutil_socket_t fd, short what, void* ctx) {
+void Buffer::ReadAtMostAwaiter::on_read_ready(evutil_socket_t fd, short what, void* ctx) {
   ReadAtMostAwaiter* aw = reinterpret_cast<ReadAtMostAwaiter*>(ctx);
   ssize_t bytes_read = evbuffer_read(aw->buf.buf, aw->event.get_fd(), aw->limit);
   aw->err = (bytes_read < 0);
@@ -606,14 +606,14 @@ void EvBuffer::ReadAtMostAwaiter::on_read_ready(evutil_socket_t fd, short what, 
   aw->coro.resume();
 }
 
-EvBuffer::ReadExactlyAwaiter::ReadExactlyAwaiter(
-    EvBuffer& buf,
+Buffer::ReadExactlyAwaiter::ReadExactlyAwaiter(
+    Buffer& buf,
     evutil_socket_t fd,
     size_t limit)
   : ReadAwaiter(buf, fd, limit, &ReadExactlyAwaiter::on_read_ready),
     eof(false) { }
 
-void EvBuffer::ReadExactlyAwaiter::await_resume() {
+void Buffer::ReadExactlyAwaiter::await_resume() {
   if (this->err) {
     throw runtime_error("failed to read from fd");
   }
@@ -622,7 +622,7 @@ void EvBuffer::ReadExactlyAwaiter::await_resume() {
   }
 }
 
-void EvBuffer::ReadExactlyAwaiter::on_read_ready(evutil_socket_t fd, short what, void* ctx) {
+void Buffer::ReadExactlyAwaiter::on_read_ready(evutil_socket_t fd, short what, void* ctx) {
   ReadExactlyAwaiter* aw = reinterpret_cast<ReadExactlyAwaiter*>(ctx);
   ssize_t bytes_read = evbuffer_read(
       aw->buf.buf, aw->event.get_fd(), aw->limit - aw->bytes_read);
@@ -642,8 +642,8 @@ void EvBuffer::ReadExactlyAwaiter::on_read_ready(evutil_socket_t fd, short what,
   }
 }
 
-EvBuffer::WriteAwaiter::WriteAwaiter(
-    EvBuffer& buf,
+Buffer::WriteAwaiter::WriteAwaiter(
+    Buffer& buf,
     evutil_socket_t fd,
     size_t limit)
   : buf(buf),
@@ -653,22 +653,22 @@ EvBuffer::WriteAwaiter::WriteAwaiter(
     err(false),
     coro(nullptr) { }
 
-bool EvBuffer::WriteAwaiter::await_ready() const noexcept {
+bool Buffer::WriteAwaiter::await_ready() const noexcept {
   return false;
 }
 
-void EvBuffer::WriteAwaiter::await_suspend(coroutine_handle<> coro) {
+void Buffer::WriteAwaiter::await_suspend(coroutine_handle<> coro) {
   this->coro = coro;
   this->event.add();
 }
 
-void EvBuffer::WriteAwaiter::await_resume() {
+void Buffer::WriteAwaiter::await_resume() {
   if (this->err) {
     throw runtime_error("failed to write to fd");
   }
 }
 
-void EvBuffer::WriteAwaiter::on_write_ready(evutil_socket_t fd, short what, void* ctx) {
+void Buffer::WriteAwaiter::on_write_ready(evutil_socket_t fd, short what, void* ctx) {
   WriteAwaiter* aw = reinterpret_cast<WriteAwaiter*>(ctx);
   if (aw->limit < 0) {
     aw->limit = aw->buf.get_length();

@@ -1,4 +1,4 @@
-#include "EventBase.hh"
+#include "Base.hh"
 
 #include <unistd.h>
 
@@ -14,37 +14,37 @@ using namespace std::experimental;
 
 namespace EventAsync {
 
-EventBase::EventBase()
+Base::Base()
   : base(event_base_new()) {
   if (!this->base) {
     throw bad_alloc();
   }
 }
 
-EventBase::EventBase(EventConfig& config)
+Base::Base(Config& config)
   : base(event_base_new_with_config(config.get())) {
   if (!this->base) {
     throw runtime_error("event_base_new_with_config failed");
   }
 }
 
-EventBase::~EventBase() {
+Base::~Base() {
   event_base_free(this->base);
 }
 
-void EventBase::run() {
+void Base::run() {
   if (event_base_dispatch(this->base) < 0) {
     throw runtime_error("event_base_dispatch failed");
   }
 }
 
-void EventBase::dispatch_once_cb(evutil_socket_t fd, short what, void* ctx) {
+void Base::dispatch_once_cb(evutil_socket_t fd, short what, void* ctx) {
   auto* fn = reinterpret_cast<function<void(evutil_socket_t, short)>*>(ctx);
   (*fn)(fd, what);
   delete fn;
 }
 
-void EventBase::once(
+void Base::once(
     evutil_socket_t fd,
     short what,
     function<void(evutil_socket_t, short)> cb,
@@ -52,14 +52,14 @@ void EventBase::once(
   auto tv = usecs_to_timeval(timeout_usecs);
   // TODO: can we do this without an extra allocation?
   auto fn = new function<void(evutil_socket_t, short)>(cb);
-  if (event_base_once(this->base, fd, what, &EventBase::dispatch_once_cb, fn,
+  if (event_base_once(this->base, fd, what, &Base::dispatch_once_cb, fn,
       &tv)) {
     delete fn;
     throw runtime_error("event_base_once failed");
   }
 }
 
-void EventBase::once(
+void Base::once(
     evutil_socket_t fd,
     short what,
     void (*cb)(evutil_socket_t, short, void*),
@@ -71,29 +71,29 @@ void EventBase::once(
   }
 }
 
-TimeoutAwaiter EventBase::sleep(uint64_t usecs) {
+TimeoutAwaiter Base::sleep(uint64_t usecs) {
   return TimeoutAwaiter(*this, usecs);
 }
 
-EventBase::ReadAwaiter EventBase::read(evutil_socket_t fd, void* data, size_t size) {
+Base::ReadAwaiter Base::read(evutil_socket_t fd, void* data, size_t size) {
   return ReadAwaiter(*this, fd, data, size);
 }
 
-Task<string> EventBase::read(evutil_socket_t fd, size_t size) {
+Task<string> Base::read(evutil_socket_t fd, size_t size) {
   string ret(size, '\0');
   co_await this->read(fd, const_cast<char*>(ret.data()), ret.size());
   co_return ret;
 }
 
-EventBase::WriteAwaiter EventBase::write(evutil_socket_t fd, const void* data, size_t size) {
+Base::WriteAwaiter Base::write(evutil_socket_t fd, const void* data, size_t size) {
   return WriteAwaiter(*this, fd, data, size);
 }
 
-EventBase::WriteAwaiter EventBase::write(evutil_socket_t fd, const std::string& data) {
+Base::WriteAwaiter Base::write(evutil_socket_t fd, const string& data) {
   return WriteAwaiter(*this, fd, data.data(), data.size());
 }
 
-Task<int> EventBase::connect(const std::string& addr, int port) {
+Task<int> Base::connect(const std::string& addr, int port) {
   int fd = ::connect(addr, port, true);
   co_await EventAwaiter(*this, fd, EV_WRITE);
   co_return move(fd);
@@ -101,8 +101,8 @@ Task<int> EventBase::connect(const std::string& addr, int port) {
 
 
 
-EventBase::ReadAwaiter::ReadAwaiter(
-    EventBase& base,
+Base::ReadAwaiter::ReadAwaiter(
+    Base& base,
     evutil_socket_t fd,
     void* data,
     size_t size)
@@ -115,7 +115,7 @@ EventBase::ReadAwaiter::ReadAwaiter(
     eof(false),
     coro(nullptr) { }
 
-bool EventBase::ReadAwaiter::await_ready() {
+bool Base::ReadAwaiter::await_ready() {
   ssize_t bytes_read = ::read(this->fd, this->data, this->size);
   if (bytes_read < 0) {
     // Failed to read for some reason. Try again later if there's just no data;
@@ -140,14 +140,14 @@ bool EventBase::ReadAwaiter::await_ready() {
   }
 }
 
-void EventBase::ReadAwaiter::await_suspend(coroutine_handle<> coro) {
+void Base::ReadAwaiter::await_suspend(coroutine_handle<> coro) {
   this->coro = coro;
   this->event = Event(
       this->base, this->fd, EV_READ, &ReadAwaiter::on_read_ready, this);
   this->event.add();
 }
 
-void EventBase::ReadAwaiter::await_resume() {
+void Base::ReadAwaiter::await_resume() {
   // TODO: these should be more descriptive, and different types
   if (this->err) {
     throw runtime_error("failed to read from fd");
@@ -157,7 +157,7 @@ void EventBase::ReadAwaiter::await_resume() {
   }
 }
 
-void EventBase::ReadAwaiter::on_read_ready(evutil_socket_t fd, short what, void* ctx) {
+void Base::ReadAwaiter::on_read_ready(evutil_socket_t fd, short what, void* ctx) {
   ReadAwaiter* aw = reinterpret_cast<ReadAwaiter*>(ctx);
   ssize_t bytes_read = ::read(aw->fd, aw->data, aw->size);
   if (bytes_read < 0) {
@@ -185,8 +185,8 @@ void EventBase::ReadAwaiter::on_read_ready(evutil_socket_t fd, short what, void*
 
 
 
-EventBase::WriteAwaiter::WriteAwaiter(
-    EventBase& base,
+Base::WriteAwaiter::WriteAwaiter(
+    Base& base,
     evutil_socket_t fd,
     const void* data,
     size_t size)
@@ -198,7 +198,7 @@ EventBase::WriteAwaiter::WriteAwaiter(
     err(false),
     coro(nullptr) { }
 
-bool EventBase::WriteAwaiter::await_ready() {
+bool Base::WriteAwaiter::await_ready() {
   ssize_t bytes_written = ::write(this->fd, this->data, this->size);
   if (bytes_written < 0) {
     // Failed to write for some reason. Try again later if the buffer is full;
@@ -224,20 +224,20 @@ bool EventBase::WriteAwaiter::await_ready() {
   }
 }
 
-void EventBase::WriteAwaiter::await_suspend(coroutine_handle<> coro) {
+void Base::WriteAwaiter::await_suspend(coroutine_handle<> coro) {
   this->coro = coro;
   this->event = Event(this->base, this->fd, EV_WRITE, &WriteAwaiter::on_write_ready, this);
   this->event.add();
 }
 
-void EventBase::WriteAwaiter::await_resume() {
+void Base::WriteAwaiter::await_resume() {
   // TODO: this should be more descriptive
   if (this->err) {
     throw runtime_error("failed to write to fd");
   }
 }
 
-void EventBase::WriteAwaiter::on_write_ready(evutil_socket_t fd, short what, void* ctx) {
+void Base::WriteAwaiter::on_write_ready(evutil_socket_t fd, short what, void* ctx) {
   WriteAwaiter* aw = reinterpret_cast<WriteAwaiter*>(ctx);
   ssize_t bytes_written = ::write(aw->fd, aw->data, aw->size);
   if (bytes_written < 0) {
@@ -266,7 +266,7 @@ void EventBase::WriteAwaiter::on_write_ready(evutil_socket_t fd, short what, voi
 
 
 
-void EventBase::dump_events(FILE* stream) {
+void Base::dump_events(FILE* stream) {
   event_base_dump_events(this->base, stream);
 }
 

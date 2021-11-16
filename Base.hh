@@ -7,22 +7,22 @@
 #include <string>
 
 #include "Task.hh"
-#include "EventConfig.hh"
+#include "Config.hh"
 #include "Event.hh"
 
 
 
 namespace EventAsync {
 
-class EventBase {
+class Base {
 public:
-  EventBase();
-  EventBase(EventConfig& config);
-  EventBase(const EventBase& base) = delete;
-  EventBase(EventBase&& base) = delete;
-  EventBase& operator=(const EventBase& base) = delete;
-  EventBase& operator=(EventBase&& base) = delete;
-  ~EventBase();
+  Base();
+  Base(Config& config);
+  Base(const Base& base) = delete;
+  Base(Base&& base) = delete;
+  Base& operator=(const Base& base) = delete;
+  Base& operator=(Base&& base) = delete;
+  ~Base();
 
   void run();
 
@@ -40,13 +40,13 @@ public:
 
   class ReadAwaiter {
   public:
-    ReadAwaiter(EventBase& base, evutil_socket_t fd, void* data, size_t size);
+    ReadAwaiter(Base& base, evutil_socket_t fd, void* data, size_t size);
     bool await_ready();
     void await_suspend(std::experimental::coroutine_handle<> coro);
     void await_resume();
   protected:
     static void on_read_ready(evutil_socket_t fd, short what, void* ctx);
-    EventBase& base;
+    Base& base;
     Event event;
     evutil_socket_t fd;
     void* data;
@@ -59,7 +59,7 @@ public:
   class WriteAwaiter {
   public:
     WriteAwaiter(
-        EventBase& base,
+        Base& base,
         evutil_socket_t fd,
         const void* data,
         size_t size);
@@ -68,7 +68,7 @@ public:
     void await_resume();
   protected:
     static void on_write_ready(evutil_socket_t fd, short what, void* ctx);
-    EventBase& base;
+    Base& base;
     Event event;
     evutil_socket_t fd;
     const void* data;

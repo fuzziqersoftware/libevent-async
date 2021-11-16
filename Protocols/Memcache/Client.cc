@@ -11,7 +11,7 @@ using namespace std;
 
 namespace EventAsync::Memcache {
 
-Client::Client(EventBase& base, const char* hostname, uint16_t port)
+Client::Client(Base& base, const char* hostname, uint16_t port)
   : base(base),
     hostname(hostname),
     port(port),
@@ -35,7 +35,7 @@ Task<void> Client::quit() {
   header.body_size = 0;
   header.byteswap();
 
-  EvBuffer buf(this->base);
+  Buffer buf(this->base);
   buf.add_reference(&header, sizeof(header));
   co_await buf.write(this->fd);
 
@@ -51,7 +51,7 @@ void Client::assert_conn_open() {
 
 
 
-Task<CommandHeader> Client::read_response_header(EvBuffer& buf,
+Task<CommandHeader> Client::read_response_header(Buffer& buf,
     uint16_t expected_error_code1, uint16_t expected_error_code2) {
   co_await buf.read_to(this->fd, sizeof(CommandHeader));
   auto header = buf.remove<CommandHeader>();
@@ -86,7 +86,7 @@ Task<Client::GetResult> Client::get(
   header.body_size = size + header.extras_size;
   header.byteswap();
 
-  EvBuffer buf(this->base);
+  Buffer buf(this->base);
   buf.add_reference(&header, sizeof(header));
   if (expiration_secs) {
     expiration_secs = bswap32(expiration_secs);
@@ -174,7 +174,7 @@ Task<bool> Client::write_key(
   extras[0] = bswap32(flags);
   extras[1] = bswap32(expiration_secs);
 
-  EvBuffer buf(this->base);
+  Buffer buf(this->base);
   buf.add_reference(&header, sizeof(header));
   buf.add_reference(extras, 8);
   buf.add_reference(key, key_size);
@@ -202,7 +202,7 @@ Task<bool> Client::delete_key(const void* key, size_t key_size, uint64_t cas) {
   header.cas = cas;
   header.byteswap();
 
-  EvBuffer buf(this->base);
+  Buffer buf(this->base);
   buf.add_reference(&header, sizeof(header));
   buf.add_reference(key, key_size);
   co_await buf.write(this->fd);
@@ -244,7 +244,7 @@ Task<uint64_t> Client::increment(
   } __attribute__((packed)) extras = {
     bswap64(delta), bswap64(initial_value), bswap32(expiration_secs)};
 
-  EvBuffer buf(this->base);
+  Buffer buf(this->base);
   buf.add_reference(&header, sizeof(header));
   buf.add_reference(&extras, sizeof(extras));
   buf.add_reference(key, key_size);
@@ -275,7 +275,7 @@ Task<void> Client::append(
   header.body_size = key_size + value_size;
   header.byteswap();
 
-  EvBuffer buf(this->base);
+  Buffer buf(this->base);
   buf.add_reference(&header, sizeof(header));
   buf.add_reference(key, key_size);
   buf.add_reference(value, value_size);
@@ -296,7 +296,7 @@ Task<void> Client::flush(uint32_t expiration_secs) {
   header.byteswap();
   expiration_secs = bswap32(expiration_secs);
 
-  EvBuffer buf(this->base);
+  Buffer buf(this->base);
   buf.add_reference(&header, sizeof(header));
   buf.add_reference(&expiration_secs, sizeof(expiration_secs));
   co_await buf.write(this->fd);
@@ -314,7 +314,7 @@ Task<uint64_t> Client::noop() {
   header.body_size = 0;
   header.byteswap();
 
-  EvBuffer buf(this->base);
+  Buffer buf(this->base);
   buf.add_reference(&header, sizeof(header));
   uint64_t start_usecs = now();
   co_await buf.write(this->fd);
@@ -332,7 +332,7 @@ Task<string> Client::version() {
   header.body_size = 0;
   header.byteswap();
 
-  EvBuffer buf(this->base);
+  Buffer buf(this->base);
   buf.add_reference(&header, sizeof(header));
   co_await buf.write(this->fd);
 
@@ -350,7 +350,7 @@ Task<unordered_map<string, string>> Client::stats(
   header.body_size = key_size;
   header.byteswap();
 
-  EvBuffer buf(this->base);
+  Buffer buf(this->base);
   buf.add_reference(&header, sizeof(header));
   if (key) {
     buf.add_reference(key, key_size);
@@ -385,7 +385,7 @@ Task<void> Client::touch(
   header.byteswap();
   expiration_secs = bswap32(expiration_secs);
 
-  EvBuffer buf(this->base);
+  Buffer buf(this->base);
   buf.add_reference(&header, sizeof(header));
   buf.add_reference(&expiration_secs, 4);
   buf.add_reference(key, size);

@@ -9,13 +9,13 @@
 
 namespace EventAsync {
 
-class EventBase;
+class Base;
 
 class Event {
 public:
   Event();
   Event(
-      EventBase& base,
+      Base& base,
       evutil_socket_t fd,
       short what,
       void (*cb)(evutil_socket_t fd, short what, void* ctx),
@@ -39,7 +39,7 @@ protected:
 class TimeoutEvent : public Event {
 public:
   TimeoutEvent(
-      EventBase& base,
+      Base& base,
       uint64_t timeout,
       void (*cb)(evutil_socket_t fd, short what, void* ctx),
       void* ctx);
@@ -54,7 +54,7 @@ protected:
 class SignalEvent : public Event {
 public:
   SignalEvent(
-      EventBase& base,
+      Base& base,
       int signum,
       void (*cb)(evutil_socket_t fd, short what, void* ctx),
       void* ctx);
@@ -66,7 +66,7 @@ public:
 // TODO: merge this with TimeoutAwaiter somehow
 class EventAwaiter {
 public:
-  EventAwaiter(EventBase& base, evutil_socket_t fd, short what);
+  EventAwaiter(Base& base, evutil_socket_t fd, short what);
   bool await_ready() const;
   void await_suspend(std::experimental::coroutine_handle<> coro);
   void await_resume();
@@ -78,7 +78,7 @@ private:
 
 class TimeoutAwaiter {
 public:
-  TimeoutAwaiter(EventBase& base, uint64_t timeout);
+  TimeoutAwaiter(Base& base, uint64_t timeout);
   bool await_ready() const;
   void await_suspend(std::experimental::coroutine_handle<> coro);
   void await_resume();

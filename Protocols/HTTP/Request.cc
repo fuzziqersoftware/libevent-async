@@ -11,7 +11,7 @@ using namespace std;
 
 namespace EventAsync::HTTP {
 
-Request::Request(EventBase& base)
+Request::Request(Base& base)
   : base(base),
     req(evhttp_request_new(&Request::on_response, this)),
     owned(false),
@@ -22,7 +22,7 @@ Request::Request(EventBase& base)
   }
 }
 
-Request::Request(EventBase& base, struct evhttp_request* req)
+Request::Request(Base& base, struct evhttp_request* req)
   : base(base), req(req), owned(false) { }
 
 Request::Request(Request&& other)
@@ -109,12 +109,12 @@ const char* Request::get_host() const {
   return evhttp_request_get_host(this->req);
 }
 
-EvBuffer Request::get_input_buffer() {
-  return EvBuffer(this->base, evhttp_request_get_input_buffer(this->req));
+Buffer Request::get_input_buffer() {
+  return Buffer(this->base, evhttp_request_get_input_buffer(this->req));
 }
 
-EvBuffer Request::get_output_buffer() {
-  return EvBuffer(this->base, evhttp_request_get_output_buffer(this->req));
+Buffer Request::get_output_buffer() {
+  return Buffer(this->base, evhttp_request_get_output_buffer(this->req));
 }
 
 struct evkeyvalq* Request::get_input_headers() {

@@ -7,9 +7,8 @@
 #include <unordered_map>
 #include <phosg/Filesystem.hh>
 #include "../../Task.hh"
-#include "../../EventBase.hh"
-#include "../../EvDNSBase.hh"
-#include "../../EvBuffer.hh"
+#include "../../Base.hh"
+#include "../../Buffer.hh"
 
 #include "Types.hh"
 
@@ -19,7 +18,7 @@ namespace EventAsync::Memcache {
 
 class Client {
 public:
-  Client(EventBase& base, const char* hostname, uint16_t port);
+  Client(Base& base, const char* hostname, uint16_t port);
   ~Client() = default;
 
   // Opens the connection. After constructing a Client object, you must
@@ -115,13 +114,13 @@ public:
   Task<void> touch(const void* key, size_t size, uint32_t expiration_secs);
 
 private:
-  EventBase& base;
+  Base& base;
   std::string hostname;
   uint16_t port;
 
   scoped_fd fd;
 
-  Task<CommandHeader> read_response_header(EvBuffer& buf,
+  Task<CommandHeader> read_response_header(Buffer& buf,
       uint16_t expected_error_code1 = 0, uint16_t expected_error_code2 = 0);
 
   // Used for set, add, and replace

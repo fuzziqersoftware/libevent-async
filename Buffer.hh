@@ -7,21 +7,21 @@
 #include <string>
 #include <experimental/coroutine>
 
-#include "EventBase.hh"
+#include "Base.hh"
 #include "Event.hh"
 
 
 
 namespace EventAsync {
 
-struct EvBuffer {
-  explicit EvBuffer(EventBase& base);
-  EvBuffer(EventBase& base, struct evbuffer* buf);
-  EvBuffer(const EvBuffer& buf) = delete;
-  EvBuffer(EvBuffer&& buf);
-  EvBuffer& operator=(const EvBuffer& buf) = delete;
-  EvBuffer& operator=(EvBuffer&& buf) = delete;
-  virtual ~EvBuffer();
+struct Buffer {
+  explicit Buffer(Base& base);
+  Buffer(Base& base, struct evbuffer* buf);
+  Buffer(const Buffer& buf) = delete;
+  Buffer(Buffer&& buf);
+  Buffer& operator=(const Buffer& buf) = delete;
+  Buffer& operator=(Buffer&& buf) = delete;
+  virtual ~Buffer();
 
   void enable_locking(void* lock);
   void lock();
@@ -38,13 +38,13 @@ struct EvBuffer {
   size_t add_vprintf(const char* fmt, va_list va);
 
   void add_buffer(struct evbuffer* src);
-  void add_buffer(EvBuffer& src);
+  void add_buffer(Buffer& src);
   size_t remove_buffer(struct evbuffer* src, size_t size);
-  size_t remove_buffer(EvBuffer& src, size_t size);
+  size_t remove_buffer(Buffer& src, size_t size);
 
   void prepend(const void* data, size_t size);
   void prepend_buffer(struct evbuffer* src);
-  void prepend_buffer(EvBuffer& src);
+  void prepend_buffer(Buffer& src);
 
   uint8_t* pullup(ssize_t size);
 
@@ -148,7 +148,7 @@ struct EvBuffer {
   void add_file(int fd, off_t offset, size_t size);
 
   void add_buffer_reference(struct evbuffer* other_buf);
-  void add_buffer_reference(EvBuffer& other_buf);
+  void add_buffer_reference(Buffer& other_buf);
 
   void freeze(int at_front);
   void unfreeze(int at_front);
@@ -161,11 +161,11 @@ struct EvBuffer {
     void await_suspend(std::experimental::coroutine_handle<> coro);
   protected:
     ReadAwaiter(
-        EvBuffer& buf,
+        Buffer& buf,
         evutil_socket_t fd,
         ssize_t limit,
         void (*cb)(evutil_socket_t, short, void*));
-    EvBuffer& buf;
+    Buffer& buf;
     Event event;
     size_t limit;
     size_t bytes_read;
@@ -176,7 +176,7 @@ struct EvBuffer {
   class ReadAtMostAwaiter : public ReadAwaiter {
   public:
     ReadAtMostAwaiter(
-        EvBuffer& buf,
+        Buffer& buf,
         evutil_socket_t fd,
         ssize_t limit);
     size_t await_resume();
@@ -187,7 +187,7 @@ struct EvBuffer {
   class ReadExactlyAwaiter : public ReadAwaiter {
   public:
     ReadExactlyAwaiter(
-        EvBuffer& buf,
+        Buffer& buf,
         evutil_socket_t fd,
         size_t limit);
     void await_resume();
@@ -203,14 +203,14 @@ struct EvBuffer {
   class WriteAwaiter {
   public:
     WriteAwaiter(
-        EvBuffer& buf,
+        Buffer& buf,
         evutil_socket_t fd,
         size_t size);
     bool await_ready() const noexcept;
     void await_suspend(std::experimental::coroutine_handle<> coro);
     void await_resume();
   protected:
-    EvBuffer& buf;
+    Buffer& buf;
     Event event;
     ssize_t limit;
     size_t bytes_written;
@@ -225,7 +225,7 @@ struct EvBuffer {
   // debugging
   void debug_print_contents(FILE* stream);
 
-  EventBase& base;
+  Base& base;
   struct evbuffer* buf;
   bool owned;
 };

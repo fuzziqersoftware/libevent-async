@@ -4,7 +4,7 @@
 #include <phosg/Time.hh>
 
 #include "Task.hh"
-#include "EventBase.hh"
+#include "Base.hh"
 
 using namespace std;
 using namespace EventAsync;
@@ -20,7 +20,7 @@ Task<size_t> test_returns_fn2() {
   co_return ret + 4;
 }
 
-DetachedTask test_returns(EventBase& base) {
+DetachedTask test_returns(Base& base) {
   size_t v = co_await test_returns_fn2();
   expect_eq(v, 9);
 }
@@ -37,7 +37,7 @@ Task<void> test_exceptions_fn2() {
   co_return;
 }
 
-DetachedTask test_exceptions(EventBase& base) {
+DetachedTask test_exceptions(Base& base) {
   try {
     co_await test_returns_fn2();
   } catch (const runtime_error& e) {
@@ -47,7 +47,7 @@ DetachedTask test_exceptions(EventBase& base) {
 
 
 
-DetachedTask test_timeouts(EventBase& base) {
+DetachedTask test_timeouts(Base& base) {
   uint64_t start = now();
   co_await base.sleep(1000000);
   expect_ge(now() - start, 1000000);
@@ -56,7 +56,7 @@ DetachedTask test_timeouts(EventBase& base) {
 
 
 int main(int argc, char** argv) {
-  EventBase base;
+  Base base;
 
   fprintf(stderr, "-- test_returns\n");
   test_returns(base);

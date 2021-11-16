@@ -6,13 +6,13 @@ using namespace std;
 
 namespace EventAsync {
 
-Listener::Listener(EventBase& base, int fd) : base(base), listen_fd(fd) { }
+Listener::Listener(Base& base, int fd) : base(base), listen_fd(fd) { }
 
 Listener::Awaiter Listener::accept() const {
   return Awaiter(this->base, this->listen_fd);
 }
 
-Listener::Awaiter::Awaiter(EventBase& base, int listen_fd)
+Listener::Awaiter::Awaiter(Base& base, int listen_fd)
   : listen_fd(listen_fd),
     accepted_fd(-1),
     base(base),

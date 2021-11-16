@@ -5,9 +5,9 @@
 #include <string>
 #include <phosg/Filesystem.hh>
 #include "../../Task.hh"
-#include "../../EventBase.hh"
-#include "../../EvDNSBase.hh"
-#include "../..//EvBuffer.hh"
+#include "../../Base.hh"
+#include "../../DNSBase.hh"
+#include "../../Buffer.hh"
 
 #include "ProtocolBuffer.hh"
 #include "Types.hh"
@@ -19,7 +19,7 @@ namespace EventAsync::MySQL {
 class Client {
 public:
   Client(
-      EventBase& base,
+      Base& base,
       const char* hostname,
       uint16_t port,
       const char* username,
@@ -59,7 +59,7 @@ public:
   Task<std::string> get_binlog_event();
 
 private:
-  EventBase& base;
+  Base& base;
   std::string hostname;
   uint16_t port;
   std::string username;
