@@ -36,8 +36,14 @@ Protocols/Memcache/FunctionalTest: Protocols/Memcache/FunctionalTest.o $(OBJECTS
 
 install: $(PACKAGE_LIBRARIES)
 	mkdir -p $(INSTALL_DIR)/include/event-async
+	mkdir -p $(INSTALL_DIR)/include/event-async/Protocols/HTTP
+	mkdir -p $(INSTALL_DIR)/include/event-async/Protocols/MySQL
+	mkdir -p $(INSTALL_DIR)/include/event-async/Protocols/Memcache
 	cp $(PACKAGE_LIBRARIES) $(INSTALL_DIR)/lib/
-	cp -r *.hh $(INSTALL_DIR)/include/event-async/
+	cp *.hh $(INSTALL_DIR)/include/event-async/
+	cp Protocols/HTTP/*.hh $(INSTALL_DIR)/include/event-async/Protocols/HTTP/
+	cp Protocols/MySQL/*.hh $(INSTALL_DIR)/include/event-async/Protocols/MySQL/
+	cp Protocols/Memcache/*.hh $(INSTALL_DIR)/include/event-async/Protocols/Memcache/
 
 libevent-async.a: $(OBJECTS)
 	rm -f $@
