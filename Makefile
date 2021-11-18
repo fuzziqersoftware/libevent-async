@@ -1,4 +1,4 @@
-OBJECTS=Task.o Config.o Base.o Event.o Buffer.o Listener.o DNSBase.o
+OBJECTS=Task.o Config.o Base.o Event.o Buffer.o DNSBase.o
 HTTP_OBJECTS=Protocols/HTTP/Request.o Protocols/HTTP/Connection.o Protocols/HTTP/Server.o
 MYSQL_OBJECTS=Protocols/MySQL/Types.o Protocols/MySQL/ProtocolBuffer.o Protocols/MySQL/Client.o
 MEMCACHE_OBJECTS=Protocols/Memcache/Types.o Protocols/Memcache/Client.o

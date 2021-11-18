@@ -77,6 +77,25 @@ public:
     std::experimental::coroutine_handle<> coro;
   };
 
+  class AcceptAwaiter {
+  public:
+    AcceptAwaiter(
+        Base& base, int listen_fd, struct sockaddr_storage* addr = nullptr);
+    int await_resume();
+    bool await_ready() const noexcept;
+    void await_suspend(std::experimental::coroutine_handle<> coro);
+  private:
+    static void on_accept_ready(int fd, short what, void* ctx);
+
+    int listen_fd;
+    int accepted_fd;
+    Base& base;
+    Event event;
+    struct sockaddr_storage* addr;
+    bool err;
+    std::experimental::coroutine_handle<> coro;
+  };
+
   TimeoutAwaiter sleep(uint64_t usecs);
 
   ReadAwaiter read(evutil_socket_t fd, void* data, size_t size);
@@ -86,6 +105,7 @@ public:
   WriteAwaiter write(evutil_socket_t fd, const std::string& data);
 
   Task<int> connect(const std::string& addr, int port);
+  AcceptAwaiter accept(int listen_fd, struct sockaddr_storage* addr = nullptr);
 
   void dump_events(FILE* stream);
 

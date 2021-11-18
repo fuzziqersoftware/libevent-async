@@ -266,6 +266,59 @@ void Base::WriteAwaiter::on_write_ready(evutil_socket_t fd, short what, void* ct
 
 
 
+Base::AcceptAwaiter Base::accept(
+    int listen_fd, struct sockaddr_storage* addr) {
+  return AcceptAwaiter(*this, listen_fd, addr);
+}
+
+Base::AcceptAwaiter::AcceptAwaiter(
+    Base& base,
+    int listen_fd,
+    struct sockaddr_storage* addr)
+  : listen_fd(listen_fd),
+    accepted_fd(-1),
+    base(base),
+    event(this->base, this->listen_fd, EV_READ, &AcceptAwaiter::on_accept_ready, this),
+    addr(addr),
+    err(false),
+    coro(nullptr) { }
+
+bool Base::AcceptAwaiter::await_ready() const noexcept {
+  return false;
+}
+
+void Base::AcceptAwaiter::await_suspend(coroutine_handle<> coro) {
+  this->coro = coro;
+  this->event.add();
+}
+
+int Base::AcceptAwaiter::await_resume() {
+  if (this->err) {
+    throw runtime_error("accept() failed");
+  }
+  return this->accepted_fd;
+}
+
+void Base::AcceptAwaiter::on_accept_ready(int fd, short what, void* ctx) {
+  AcceptAwaiter* aw = reinterpret_cast<AcceptAwaiter*>(ctx);
+  socklen_t addr_size = aw->addr ? sizeof(*aw->addr) : 0;
+  aw->accepted_fd = ::accept(
+      aw->listen_fd,
+      reinterpret_cast<struct sockaddr*>(aw->addr),
+      aw->addr ? &addr_size : nullptr);
+  if (aw->accepted_fd < 0) {
+    if (errno != EWOULDBLOCK && errno != EAGAIN) {
+      aw->err = true;
+    } else {
+      aw->event.add(); // Try again
+    }
+  } else {
+    aw->coro.resume(); // Got an fd; coro can resume
+  }
+}
+
+
+
 void Base::dump_events(FILE* stream) {
   event_base_dump_events(this->base, stream);
 }
