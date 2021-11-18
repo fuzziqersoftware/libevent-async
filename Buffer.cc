@@ -540,11 +540,11 @@ void Buffer::debug_print_contents(FILE* stream) {
   }
 }
 
-Buffer::ReadAtMostAwaiter Buffer::read(evutil_socket_t fd, ssize_t size) {
+Buffer::ReadAtMostAwaiter Buffer::read_atmost(evutil_socket_t fd, ssize_t size) {
   return ReadAtMostAwaiter(*this, fd, size);
 }
 
-Buffer::ReadExactlyAwaiter Buffer::read_exactly(
+Buffer::ReadExactlyAwaiter Buffer::read(
     evutil_socket_t fd, size_t size) {
   return ReadExactlyAwaiter(*this, fd, static_cast<ssize_t>(size));
 }

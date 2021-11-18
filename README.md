@@ -24,10 +24,10 @@ Everything here is in the namespace `EventAsync`.
 * `Listener`
   * `co_await Listener::accept`: Waits for an incoming connection, and when one arrives, returns its fd.
 * `EvBuffer`
-  * `co_await EvBuffer::read`: Reads up to the given number of bytes and adds it to the buffer. This awaiter resumes when *any* nonzero amount of data is read, which may be less than the amount requested.
-  * `co_await EvBuffer::read_exactly`: Reads the given number of bytes and adds it to the buffer. This awaiter *does not* resume until the requested number of bytes have been read.
-  * `co_await EvBuffer::read_to`: Reads enough bytes such that the buffer contains at least the given number of bytes. If the buffer already has that much data or more, the caller is not suspended.
-  * `co_await EvBuffer::write`: Writes the given number of bytes from the buffer. This does not drain them from the buffer.
+  * `co_await EvBuffer::read_atmost`: Reads up to the given number of bytes from the given fd and adds it to the buffer. This awaiter resumes when *any* nonzero amount of data is read, which may be less than the amount requested.
+  * `co_await EvBuffer::read`: Reads the given number of bytes from the given fd and adds it to the buffer. This awaiter *does not* resume until the requested number of bytes have been read.
+  * `co_await EvBuffer::read_to`: Reads enough bytes from the given fd such that the buffer contains at least the given number of bytes. If the buffer already has that much data or more, the caller is not suspended.
+  * `co_await EvBuffer::write`: Writes the given number of bytes from the buffer to the given fd. If size is not given or is negative, writes the entire contents of the buffer. The written data is drained from the buffer.
 
 ## The libhttp-async library
 

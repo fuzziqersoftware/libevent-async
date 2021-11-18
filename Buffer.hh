@@ -157,6 +157,10 @@ struct Buffer {
 
   class ReadAwaiter {
   public:
+    ReadAwaiter(const ReadAwaiter&) = delete;
+    ReadAwaiter(ReadAwaiter&&) = delete;
+    ReadAwaiter& operator=(const ReadAwaiter&) = delete;
+    ReadAwaiter& operator=(ReadAwaiter&&) = delete;
     bool await_ready() const noexcept;
     void await_suspend(std::experimental::coroutine_handle<> coro);
   protected:
@@ -196,8 +200,8 @@ struct Buffer {
     static void on_read_ready(evutil_socket_t fd, short what, void* ctx);
   };
 
-  ReadAtMostAwaiter read(evutil_socket_t fd, ssize_t size = -1);
-  ReadExactlyAwaiter read_exactly(evutil_socket_t fd, size_t size);
+  ReadAtMostAwaiter read_atmost(evutil_socket_t fd, ssize_t size = -1);
+  ReadExactlyAwaiter read(evutil_socket_t fd, size_t size);
   ReadExactlyAwaiter read_to(evutil_socket_t fd, size_t size);
 
   class WriteAwaiter {
@@ -206,6 +210,10 @@ struct Buffer {
         Buffer& buf,
         evutil_socket_t fd,
         size_t size);
+    WriteAwaiter(const WriteAwaiter&) = delete;
+    WriteAwaiter(WriteAwaiter&&) = delete;
+    WriteAwaiter& operator=(const WriteAwaiter&) = delete;
+    WriteAwaiter& operator=(WriteAwaiter&&) = delete;
     bool await_ready() const noexcept;
     void await_suspend(std::experimental::coroutine_handle<> coro);
     void await_resume();
