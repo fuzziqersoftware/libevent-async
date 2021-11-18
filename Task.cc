@@ -7,14 +7,13 @@ using namespace std::experimental;
 
 namespace EventAsync {
 
-coroutine_handle<> Task<void>::Awaiter::await_suspend(
-    coroutine_handle<> awaiting_coro) const noexcept {
-  this->coro.promise().set_awaiting_coro(awaiting_coro);
-  return this->coro;
-}
-
 void Task<void>::Awaiter::await_resume() const {
   // We still need to call .result() in case there's an exception to re-throw.
+  // TODO: see if we can do this in a less ugly way
+  reinterpret_cast<Task<void>*>(this->task)->result();
+}
+
+void Task<void>::result() const {
   this->coro.promise().result();
 }
 

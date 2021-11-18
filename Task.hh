@@ -11,133 +11,139 @@ namespace EventAsync {
 template<typename ReturnT>
 class TaskPromise;
 
-template <typename ReturnT>
-class Task {
+template <typename PromiseT>
+class [[nodiscard]] TaskBase {
 public:
-  using promise_type = TaskPromise<ReturnT>;
+  using promise_type = PromiseT;
 
-  class Awaiter {
+  class AwaiterBase {
   public:
-    explicit Awaiter(std::experimental::coroutine_handle<promise_type> coro)
-      : coro(coro) { }
+    explicit AwaiterBase(TaskBase* task) : task(task) { }
 
     bool await_ready() const noexcept {
-      return this->coro.done();
+      return this->task->coro.done();
     }
 
     std::experimental::coroutine_handle<> await_suspend(
         std::experimental::coroutine_handle<> awaiting_coro) const noexcept {
-      this->coro.promise().set_awaiting_coro(awaiting_coro);
-      return this->coro;
+      this->task->coro.promise().set_awaiting_coro(awaiting_coro);
+      if (this->task->started) {
+        return std::experimental::noop_coroutine();
+      } else {
+        this->task->started = true;
+        return this->task->coro;
+      }
     }
 
   protected:
-    std::experimental::coroutine_handle<promise_type> coro;
+    TaskBase* task;
   };
 
-  class CopyAwaiter : public Awaiter {
+  class NoReturnAwaiter : public AwaiterBase {
   public:
-    using Awaiter::Awaiter;
-    ReturnT& await_resume() const {
-      return this->coro.promise().result();
-    }
+    using AwaiterBase::AwaiterBase;
+    void await_resume() { }
   };
 
-  class MoveAwaiter : public Awaiter {
-  public:
-    using Awaiter::Awaiter;
-    ReturnT&& await_resume() const {
-      return std::move(this->coro.promise().result());
-    }
-  };
-
-  Task() noexcept = default;
-  Task(std::experimental::coroutine_handle<promise_type> coro) noexcept
-    : coro(coro) { }
-  Task(const Task& other) = delete;
-  Task(Task&& other) noexcept : coro(other.coro) {
+  TaskBase() noexcept = default;
+  TaskBase(std::experimental::coroutine_handle<promise_type> coro) noexcept
+    : coro(coro), started(false) { }
+  TaskBase(const TaskBase& other) = delete;
+  TaskBase(TaskBase&& other) noexcept : coro(other.coro), started(other.started) {
     other.coro = nullptr;
   }
-  ~Task() noexcept {
+  ~TaskBase() noexcept {
     if (this->coro != nullptr) {
       this->coro.destroy();
     }
   }
-  Task& operator=(const Task& other) = delete;
-  Task& operator=(Task&& other) noexcept {
+  TaskBase& operator=(const TaskBase& other) = delete;
+  TaskBase& operator=(TaskBase&& other) noexcept {
     if (this->coro != nullptr) {
       this->coro.destroy();
     }
     this->coro = other.coro;
+    this->started = other.started;
     other.coro = nullptr;
     return *this;
   }
 
-  CopyAwaiter operator co_await() const& noexcept {
-    return CopyAwaiter(this->coro);
+  void start() {
+    if (!this->started) {
+      this->started = true;
+      this->coro.resume();
+    }
   }
 
-  MoveAwaiter operator co_await() const&& noexcept {
-    return MoveAwaiter(this->coro);
+  NoReturnAwaiter wait() {
+    return NoReturnAwaiter(this);
   }
 
- private:
+  bool done() const {
+    return this->coro.done();
+  }
+
+protected:
    std::experimental::coroutine_handle<promise_type> coro;
+   bool started;
+};
+
+template <typename ReturnT>
+class [[nodiscard]] Task : public TaskBase<TaskPromise<ReturnT>> {
+public:
+  using TaskBase<TaskPromise<ReturnT>>::TaskBase;
+
+  class CopyAwaiter : public TaskBase<TaskPromise<ReturnT>>::AwaiterBase {
+  public:
+    using TaskBase<TaskPromise<ReturnT>>::AwaiterBase::AwaiterBase;
+    ReturnT& await_resume() const {
+      Task<ReturnT>* t = reinterpret_cast<Task<ReturnT>*>(this->task);
+      return t->result();
+    }
+  };
+
+  class MoveAwaiter : public TaskBase<TaskPromise<ReturnT>>::AwaiterBase {
+  public:
+    using TaskBase<TaskPromise<ReturnT>>::AwaiterBase::AwaiterBase;
+    ReturnT&& await_resume() const {
+      Task<ReturnT>* t = reinterpret_cast<Task<ReturnT>*>(this->task);
+      return std::move(t->result());
+    }
+  };
+
+  CopyAwaiter operator co_await() & noexcept {
+    return CopyAwaiter(this);
+  }
+
+  MoveAwaiter operator co_await() && noexcept {
+    return MoveAwaiter(this);
+  }
+
+  ReturnT& result() {
+    return this->coro.promise().result();
+  }
+
+  const ReturnT& result() const {
+    return this->coro.promise().result();
+  }
 };
 
 template <>
-class Task<void> {
+class [[nodiscard]] Task<void> : public TaskBase<TaskPromise<void>> {
 public:
-  using promise_type = TaskPromise<void>;
+  using TaskBase<TaskPromise<void>>::TaskBase;
 
-  class Awaiter {
+  class Awaiter : public TaskBase<TaskPromise<void>>::AwaiterBase {
   public:
-    explicit Awaiter(std::experimental::coroutine_handle<promise_type> coro)
-      : coro(coro) { }
-
-    bool await_ready() const noexcept {
-      return this->coro.done();
-    }
-
-    // Note: these cannot be defined here because calling this->coro.promise()
-    // requires instantiating TaskPromise, but it has not been fully defined
-    // yet.
-    std::experimental::coroutine_handle<> await_suspend(
-        std::experimental::coroutine_handle<> awaiting_coro) const noexcept;
+    using TaskBase<TaskPromise<void>>::AwaiterBase::AwaiterBase;
     void await_resume() const;
-
-  protected:
-    std::experimental::coroutine_handle<promise_type> coro;
   };
 
-  Task() noexcept = default;
-  Task(std::experimental::coroutine_handle<promise_type> coro) noexcept
-    : coro(coro) { }
-  Task(const Task& other) = delete;
-  Task(Task&& other) noexcept : coro(other.coro) {
-    other.coro = nullptr;
-  }
-  ~Task() noexcept {
-    if (this->coro != nullptr) {
-      this->coro.destroy();
-    }
-  }
-  Task& operator=(const Task& other) = delete;
-  Task& operator=(Task&& other) noexcept {
-    if (this->coro != nullptr) {
-      this->coro.destroy();
-    }
-    this->coro = other.coro;
-    other.coro = nullptr;
-    return *this;
+  Awaiter operator co_await() noexcept {
+    return Awaiter(this);
   }
 
-  Awaiter operator co_await() const noexcept {
-    return Awaiter(this->coro);
-  }
-
- private:
-   std::experimental::coroutine_handle<promise_type> coro;
+  void result() const;
 };
 
 
@@ -155,7 +161,12 @@ public:
     template <class Promise>
     std::experimental::coroutine_handle<> await_suspend(
         std::experimental::coroutine_handle<Promise> coro) noexcept {
-      return coro.promise().awaiting_coro;
+      auto awaiting_coro = coro.promise().awaiting_coro;
+      if (awaiting_coro) {
+        return coro.promise().awaiting_coro;
+      } else {
+        return std::experimental::noop_coroutine();
+      }
     }
   };
 
@@ -211,7 +222,12 @@ public:
     template <class Promise>
     std::experimental::coroutine_handle<> await_suspend(
         std::experimental::coroutine_handle<Promise> coro) noexcept {
-      return coro.promise().awaiting_coro;
+      auto awaiting_coro = coro.promise().awaiting_coro;
+      if (awaiting_coro) {
+        return coro.promise().awaiting_coro;
+      } else {
+        return std::experimental::noop_coroutine();
+      }
     }
   };
 
@@ -299,5 +315,21 @@ public:
 private:
   std::shared_ptr<DetachedTaskCoroutine> handle;
 };
+
+
+
+template <typename IteratorT>
+Task<void> all(IteratorT start_it, IteratorT end_it) {
+  for (IteratorT it = start_it; it != end_it; it++) {
+    it->start();
+  }
+  for (IteratorT it = start_it; it != end_it; it++) {
+    // Note: We ignore exceptions here because the caller is expected to call
+    // .result() on each task (or co_await it, even though it is guaranteed to
+    // be complete when this function returns), at which point the exceptions
+    // will be re-thrown.
+    co_await it->wait();
+  }
+}
 
 } // namespace EventAsync

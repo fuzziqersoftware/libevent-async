@@ -13,8 +13,10 @@ There are also clients for various common protocols built as libraries alongside
 
 Everything here is in the namespace `EventAsync`.
 
-* `Task<ReturnT>`: The common coroutine task type. Functions defined with this type are coroutines that co_return the specified type (which may be void). Execution does not begin until the task is co_awaited, and tasks are not destroyed automatically upon returning.
-* `DetachedTask`: Used for tasks that execute independently of their callers. Before calling EventBase::run, call one or more DetachedTasks in order to create servers and whatnot. Unlike AsyncTasks, DetachedTasks begin executing immediately when they are called, and are automatically destroyed when their coroutine returns. They may not return a value.
+* Task types and functions
+  * `Task<ReturnT>`: The common coroutine task type. Functions defined with this type are coroutines that co_return the specified type (which may be void). Execution does not begin until the task is co_awaited, and tasks are not destroyed automatically upon returning.
+  * `DetachedTask`: Used for tasks that execute independently of their callers. Before calling EventBase::run, call one or more DetachedTasks in order to create servers and whatnot. Unlike AsyncTasks, DetachedTasks begin executing immediately when they are called, and are automatically destroyed when their coroutine returns. They may not return a value.
+  * `all(Iterator start, Iterator end)`: Runs all of the tasks in parallel (assuming they are I/O-bound), and returns when all tasks have either returned or thrown an exception. The caller must either co_await each task or call .result() on each task after all() returns - this will return the task's value or throw its exception.
 * `EventBase`
   * `run`: Runs the event loop, just like event_base_dispatch().
   * `co_await EventBase::sleep`: Suspends the caller for the given time.

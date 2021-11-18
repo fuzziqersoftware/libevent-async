@@ -1,10 +1,14 @@
+#include <inttypes.h>
+
 #include <unordered_set>
 #include <experimental/coroutine>
 #include <phosg/UnitTest.hh>
+#include <phosg/Network.hh>
 #include <phosg/Time.hh>
 
 #include "Task.hh"
 #include "Base.hh"
+#include "Buffer.hh"
 
 using namespace std;
 using namespace EventAsync;
@@ -55,6 +59,110 @@ DetachedTask test_timeouts(Base& base) {
 
 
 
+Task<void> test_all_sleep_task(Base& base, uint64_t usecs) {
+  co_await base.sleep(usecs);
+}
+
+DetachedTask test_all_sleep(Base& base) {
+  vector<Task<void>> tasks;
+  tasks.emplace_back(test_all_sleep_task(base, 1000000));
+  tasks.emplace_back(test_all_sleep_task(base, 2000000));
+  tasks.emplace_back(test_all_sleep_task(base, 3000000));
+
+  uint64_t start = now();
+  co_await all(tasks.begin(), tasks.end());
+  uint64_t duration = now() - start;
+  fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
+  expect_ge(duration, 3000000);
+  expect_le(duration, 4000000);
+  for (const auto& task : tasks) {
+    expect(task.done());
+  }
+
+  // None of these should throw
+  co_await tasks[0];
+  co_await tasks[1];
+  co_await tasks[2];
+}
+
+
+
+Task<void> test_all_sleep_exception_task(Base& base, uint64_t usecs) {
+  co_await base.sleep(usecs);
+  if (usecs == 1000000) {
+    throw runtime_error("oops");
+  }
+}
+
+DetachedTask test_all_sleep_exception(Base& base) {
+  vector<Task<void>> tasks;
+  tasks.emplace_back(test_all_sleep_exception_task(base, 1000000));
+  tasks.emplace_back(test_all_sleep_exception_task(base, 2000000));
+  tasks.emplace_back(test_all_sleep_exception_task(base, 3000000));
+
+  uint64_t start = now();
+  co_await all(tasks.begin(), tasks.end());
+  uint64_t duration = now() - start;
+  fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
+  expect_ge(duration, 3000000);
+  expect_le(duration, 4000000);
+  for (const auto& task : tasks) {
+    expect(task.done());
+  }
+
+  // We should still be able to get the exception even after all() returns
+  try {
+    co_await tasks[0];
+    expect(false);
+  } catch (const runtime_error&) { }
+  co_await tasks[1];
+  co_await tasks[2];
+}
+
+
+
+Task<void> test_all_network_fn(
+    Base& base,
+    int fd,
+    size_t num_iterations,
+    bool read_first) {
+
+  static const string chunk_data(1024, '\0');
+  Buffer buf(base);
+  bool should_read = read_first;
+  for (size_t z = 0; z < num_iterations; z++) {
+    if (should_read) {
+      co_await buf.read(fd, chunk_data.size());
+      expect_eq(chunk_data, buf.remove(chunk_data.size()));
+      buf.drain_all();
+    } else {
+      buf.add_reference(chunk_data.data(), chunk_data.size());
+      co_await buf.write(fd);
+      buf.drain_all();
+    }
+  }
+}
+
+DetachedTask test_all_network(Base& base) {
+  auto fds = socketpair();
+
+  vector<Task<void>> tasks;
+  tasks.emplace_back(test_all_network_fn(base, fds.first, 5, true));
+  tasks.emplace_back(test_all_network_fn(base, fds.second, 5, false));
+
+  uint64_t start = now();
+  co_await all(tasks.begin(), tasks.end());
+  uint64_t duration = now() - start;
+  fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
+  for (const auto& task : tasks) {
+    expect(task.done());
+  }
+  co_await tasks[0];
+  co_await tasks[1];
+}
+
+
+
 int main(int argc, char** argv) {
   Base base;
 
@@ -69,6 +177,20 @@ int main(int argc, char** argv) {
   fprintf(stderr, "-- test_timeouts\n");
   test_timeouts(base);
   base.run();
+
+  fprintf(stderr, "-- test_all_sleep\n");
+  test_all_sleep(base);
+  base.run();
+
+  fprintf(stderr, "-- test_all_sleep_exception\n");
+  test_all_sleep_exception(base);
+  base.run();
+
+  fprintf(stderr, "-- test_all_network\n");
+  test_all_network(base);
+  base.run();
+
+  fprintf(stderr, "-- all tests passed\n");
 
   return 0;
 }
