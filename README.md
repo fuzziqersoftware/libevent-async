@@ -14,37 +14,43 @@ There are also clients for various common protocols built as libraries alongside
 Everything here is in the namespace `EventAsync`.
 
 * Task types and functions
-  * `Task<ReturnT>`: The common coroutine task type. Functions defined with this type are coroutines that co_return the specified type (which may be void). Execution does not begin until the task is co_awaited, and tasks are not destroyed automatically upon returning.
-  * `DetachedTask`: Used for tasks that execute independently of their callers. Before calling EventBase::run, call one or more DetachedTasks in order to create servers and whatnot. Unlike AsyncTasks, DetachedTasks begin executing immediately when they are called, and are automatically destroyed when their coroutine returns. They may not return a value.
-  * `all(Iterator start, Iterator end)`: Runs all of the tasks in parallel (assuming they are I/O-bound), and returns when all tasks have either returned or thrown an exception. The caller must either co_await each task or call .result() on each task after all() returns - this will return the task's value or throw its exception.
-* `EventBase`
+  * `Task<ReturnT>`: The common coroutine task type. Functions defined with this return type are coroutines that co_return the specified type (which may be void). Execution does not begin until the task is co_awaited or .start() is called.
+  * `DetachedTask`: Used for tasks that execute independently of their callers. Before calling Base::run, call one or more DetachedTasks in order to create servers and whatnot. Unlike AsyncTasks, DetachedTasks begin executing immediately when they are called, and are automatically destroyed when their coroutine returns. They may not return a value.
+  * `co_await all(Iterator start, Iterator end)`: Runs all of the tasks in parallel (assuming they all block on I/O at some point), and returns when all tasks have either returned or thrown an exception. all() does not return a value; the caller must either co_await each task or call .result() on each task after all() returns.
+* `Base`
   * `run`: Runs the event loop, just like event_base_dispatch().
-  * `co_await EventBase::sleep`: Suspends the caller for the given time.
-  * `co_await EventBase::read`: Reads data from a (nonblocking) file descriptor.
-  * `co_await EventBase::write`: Writes data to a (nonblocking) file descriptor.
-  * `co_await EventBase::connect`: Connects to a remote server.
-* `Listener`
-  * `co_await Listener::accept`: Waits for an incoming connection, and when one arrives, returns its fd.
-* `EvBuffer`
-  * `co_await EvBuffer::read_atmost`: Reads up to the given number of bytes from the given fd and adds it to the buffer. This awaiter resumes when *any* nonzero amount of data is read, which may be less than the amount requested.
-  * `co_await EvBuffer::read`: Reads the given number of bytes from the given fd and adds it to the buffer. This awaiter *does not* resume until the requested number of bytes have been read.
-  * `co_await EvBuffer::read_to`: Reads enough bytes from the given fd such that the buffer contains at least the given number of bytes. If the buffer already has that much data or more, the caller is not suspended.
-  * `co_await EvBuffer::write`: Writes the given number of bytes from the buffer to the given fd. If size is not given or is negative, writes the entire contents of the buffer. The written data is drained from the buffer.
+  * `co_await base.sleep`: Suspends the caller for the given time.
+  * `co_await base.read`: Reads data from a (nonblocking) file descriptor.
+  * `co_await base.write`: Writes data to a (nonblocking) file descriptor.
+  * `co_await base.connect`: Connects to a remote server.
+  * `co_await base.accept`: Waits for and returns an incoming connection.
+* `Buffer`
+  * All standard `evbuffer_*` functions are present as methods on this class as well.
+  * `co_await buffer.read_atmost`: Reads up to the given number of bytes from the given fd and adds it to the buffer. This awaiter resumes when *any* nonzero amount of data is read, which may be less than the amount requested.
+  * `co_await buffer.read`: Reads the given number of bytes from the given fd and adds it to the buffer. This awaiter *does not* resume until the requested number of bytes have been read.
+  * `co_await buffer.read_to`: Reads enough bytes from the given fd such that the buffer contains at least the given number of bytes. If the buffer already has that much data or more, the caller is not suspended.
+  * `co_await buffer.write`: Writes the given number of bytes from the buffer to the given fd. If size is not given or is negative, writes the entire contents of the buffer. The written data is drained from the buffer.
 
 ## The libhttp-async library
 
 This library exists in the namespace `EventAsync::HTTP`.
 
-* `Server`: If you want to serve HTTP, HTTPS, or Websocket traffic, define a subclass of this and implement handle_request. See Protocols/HTTP/ServerExample.cc.
+* `Server`: If you want to serve HTTP, HTTPS, or Websocket traffic, define a subclass of this and implement handle_request. Then instantiate your subclass and call add_socket one or more times before calling base.run(). See Protocols/HTTP/ServerExample.cc.
 * `Connection`/`Request`: These can be used to make outbound HTTP requests, optionally using OpenSSL. See Protocols/HTTP/ClientExample.cc.
+
+To use these, include `<event-async/Protocols/HTTP/Server.hh>`, `<event-async/Protocols/HTTP/Connection.hh>`, and/or `<event-async/Protocols/HTTP/Request.hh>` and link with -lhttp-async.
 
 ## The libmysql-async library
 
 This library provides the class `EventAsync::MySQL::Client`. This client only supports caching_sha2_password authentication and can only do a few useful things; fortunately, one of those useful things is running SQL queries and returning result sets. See Protocols/MySQL/Client.hh for usage information.
 
+To use this, include `<event-async/Protocols/MySQL/Client.hh>` and link with -lmysql-async.
+
 ## The libmemcache-async library
 
 This library provides the class `EventAsync::Memcache::Client`. This client supports all the basic operations, but does not support virtual buckets or SASL authentication. See Protocols/Memcache/Client.hh for usage information.
+
+To use this, include `<event-async/Protocols/Memcache/Client.hh>` and link with -lmemcache-async.
 
 ## Things to fix / improve / add
 
@@ -54,5 +60,4 @@ Some things to work on:
 - Not all of the functions that can be `noexcept` are actually marked `noexcept`. There might be a couple of missing `const`s too.
 - It seems like there should be a better way to handle HTTP responses than what we do currently. Unfortunately, improving this seems to require changing the evhttp_request's callback after creation time, which libevent doesn't allow.
 - It would be nice to have awaitable subprocesses/pipes.
-- It would be nice to have an easy and clean way to open SSL sockets and read/write from them (currently this is only supported for HTTP connections).
-- The EvBuffer API feels suboptimal, but I can't put my finger on exactly how/why. Perhaps I'll figure this out after working with it some more.
+- It would be nice to have an easy and clean way to open SSL sockets and read/write from them directly (currently this is only supported for HTTP connections, since it's implemented there in the C layer without coroutines).
