@@ -5,6 +5,7 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <unordered_map>
 
 
 
@@ -182,7 +183,11 @@ struct ColumnDefinition {
 
 struct ResultSet {
   std::vector<ColumnDefinition> columns;
-  std::vector<std::vector<Value>> rows;
+  std::variant<
+    std::vector<std::vector<Value>>,
+    std::vector<std::unordered_map<std::string, Value>>
+  > rows;
+
   uint64_t affected_rows;
   uint64_t insert_id;
   uint16_t status_flags;

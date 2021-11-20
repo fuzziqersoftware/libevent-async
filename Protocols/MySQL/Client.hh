@@ -36,8 +36,10 @@ public:
   // Sets the current default database.
   Task<void> change_db(const std::string& db_name);
 
-  // Runs a SQL query.
-  Task<ResultSet> query(const std::string& sql);
+  // Runs a SQL query. If rows_as_dicts is true, returns row contents as
+  // unordered_maps; otherwise, returns them as vectors whose length and order
+  // matches the columns vector.
+  Task<ResultSet> query(const std::string& sql, bool rows_as_dicts = true);
 
   // Starts a binlog stream. To read binlogs, call this method to start reading,
   // then call get_binlog_event infinitely many times or until it throws

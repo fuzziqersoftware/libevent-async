@@ -94,6 +94,7 @@ Base::WriteAwaiter Base::write(evutil_socket_t fd, const string& data) {
 }
 
 Task<int> Base::connect(const std::string& addr, int port) {
+  // TODO: this does a blocking DNS query if addr isn't an IP address string
   int fd = ::connect(addr, port, true);
   co_await EventAwaiter(*this, fd, EV_WRITE);
   co_return move(fd);

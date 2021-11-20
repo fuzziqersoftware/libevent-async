@@ -157,7 +157,7 @@ Task<void> Client::initial_handshake() {
 
           // TODO: support this when we support SSL, but only if SSL has already
           // been enabled on the connection.
-          throw runtime_error("sever requested plaintext password, but connection is not encrypted");
+          throw runtime_error("server requested plaintext password, but connection is not encrypted");
           buf.add_string0(this->password);
           co_await this->write_command(buf);
 
@@ -250,7 +250,7 @@ Task<void> Client::change_db(const string& db_name) {
 
 
 
-Task<ResultSet> Client::query(const std::string& sql) {
+Task<ResultSet> Client::query(const std::string& sql, bool rows_as_dicts) {
   this->assert_conn_open();
   this->reset_seq();
 
@@ -266,6 +266,7 @@ Task<ResultSet> Client::query(const std::string& sql) {
   co_await this->read_command(buf);
   uint8_t response_command = buf.copyout_u8();
   if (response_command == 0x00) { // OK
+    buf.remove_u8();
     res.affected_rows = buf.remove_varint();
     res.insert_id = buf.remove_varint();
     res.status_flags = buf.remove_u16();
@@ -277,8 +278,15 @@ Task<ResultSet> Client::query(const std::string& sql) {
     throw runtime_error("LOCAL INFILE requests are not implemented");
   }
 
-  // If we get here, then a result set is being returned. The column definitions
-  // are sent as individual commands first.
+  // If we get here, then a result set is being returned. Set up the return
+  // structures appropriately.
+  if (rows_as_dicts) {
+    res.rows = vector<unordered_map<string, Value>>();
+  } else {
+    res.rows = vector<vector<Value>>();
+  }
+
+  // The column definitions are sent as individual commands first.
   uint64_t column_count = buf.remove_varint();
   while (res.columns.size() < column_count) {
     co_await this->read_command(buf);
@@ -306,6 +314,7 @@ Task<ResultSet> Client::query(const std::string& sql) {
     co_await this->read_command(buf);
 
     if (buf.copyout_u8() == 0xFE) {
+      buf.remove_u8();
       res.affected_rows = 0;
       res.insert_id = 0;
       res.warning_count = buf.remove_u16();
@@ -313,13 +322,29 @@ Task<ResultSet> Client::query(const std::string& sql) {
       co_return move(res);
     }
 
-    auto& row = res.rows.emplace_back();
-    for (const auto& column_def : res.columns) {
-      if (buf.copyout_u8() == 0xFB) {
-        buf.remove_u8();
-        row.emplace_back(nullptr);
-      } else {
-        row.emplace_back(parse_value(column_def.type, buf.remove_var_string()));
+    if (rows_as_dicts) {
+      auto& row = get<vector<unordered_map<string, Value>>>(res.rows)
+          .emplace_back();
+      for (const auto& column_def : res.columns) {
+        if (buf.copyout_u8() == 0xFB) {
+          buf.remove_u8();
+          row.emplace(column_def.column_name, nullptr);
+        } else {
+          row.emplace(
+              column_def.column_name,
+              parse_value(column_def.type, buf.remove_var_string()));
+        }
+      }
+
+    } else {
+      auto& row = get<vector<vector<Value>>>(res.rows).emplace_back();
+      for (const auto& column_def : res.columns) {
+        if (buf.copyout_u8() == 0xFB) {
+          buf.remove_u8();
+          row.emplace_back(nullptr);
+        } else {
+          row.emplace_back(parse_value(column_def.type, buf.remove_var_string()));
+        }
       }
     }
   }
