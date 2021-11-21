@@ -23,7 +23,7 @@ namespace EventAsync::HTTP {
 
 class Server {
 public:
-  Server(Base& base, SSL_CTX* ssl_ctx);
+  Server(Base& base, std::shared_ptr<SSL_CTX> ssl_ctx);
   Server(const Server&) = delete;
   Server(Server&&) = delete;
   Server& operator=(const Server&) = delete;
@@ -40,11 +40,16 @@ public:
   // the Server response header to all subsequent responses.
   void set_server_name(const char* server_name);
 
+  static SSL_CTX* create_server_ssl_ctx(
+      const std::string& key_filename,
+      const std::string& cert_filename,
+      const std::string& ca_cert_filename);
+
 protected:
   Base& base;
   struct evhttp* http;
   struct evhttp* ssl_http;
-  SSL_CTX* ssl_ctx;
+  std::shared_ptr<SSL_CTX> ssl_ctx;
   std::string server_name;
 
   static struct bufferevent* dispatch_on_ssl_connection(

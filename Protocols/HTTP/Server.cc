@@ -94,7 +94,7 @@ const unordered_map<int, const char*> Server::explanation_for_response_code({
 
 
 
-Server::Server(Base& base, SSL_CTX* ssl_ctx)
+Server::Server(Base& base, shared_ptr<SSL_CTX> ssl_ctx)
   : base(base), http(nullptr), ssl_http(nullptr), ssl_ctx(ssl_ctx) { }
 
 Server::~Server() {
@@ -109,6 +109,9 @@ Server::~Server() {
 void Server::add_socket(int fd, bool ssl) {
   if (ssl) {
     if (!this->ssl_http) {
+      if (!this->ssl_ctx.get()) {
+        throw logic_error("cannot add SSL listening socket without SSL_CTX set");
+      }
       this->ssl_http = evhttp_new(this->base.base);
       if (!this->ssl_http) {
         throw bad_alloc();
@@ -116,7 +119,7 @@ void Server::add_socket(int fd, bool ssl) {
       evhttp_set_bevcb(
           this->ssl_http,
           this->dispatch_on_ssl_connection,
-          this->ssl_ctx);
+          this->ssl_ctx.get());
       evhttp_set_gencb(this->ssl_http, this->dispatch_handle_request, this);
     }
     evhttp_accept_socket(this->ssl_http, fd);
@@ -394,6 +397,29 @@ Task<void> Server::WebsocketClient::write(
   string header = this->encode_websocket_message_header(size, opcode);
   co_await this->server->base.write(this->fd, header);
   co_await this->server->base.write(this->fd, data, size);
+}
+
+
+
+SSL_CTX* Server::create_server_ssl_ctx(
+    const string& key_filename,
+    const string& cert_filename,
+    const string& ca_cert_filename) {
+  SSL_CTX* ssl_ctx = SSL_CTX_new(TLS_method());
+  if (!ssl_ctx) {
+    throw bad_alloc();
+  }
+  SSL_CTX_set_min_proto_version(ssl_ctx, TLS1_2_VERSION);
+  SSL_CTX_set_cipher_list(ssl_ctx, "ECDH+AESGCM:ECDH+CHACHA20:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:RSA+AESGCM:RSA+AES:!aNULL:!MD5:!DSS:!AESCCM:!RSA");
+  SSL_CTX_set_ecdh_auto(ssl_ctx, 1);
+  SSL_CTX_load_verify_locations(ssl_ctx, ca_cert_filename.c_str(), nullptr);
+  if (SSL_CTX_use_certificate_file(ssl_ctx, cert_filename.c_str(), SSL_FILETYPE_PEM) <= 0) {
+    throw runtime_error("cannot load SSL certificate file " + cert_filename);
+  }
+  if (SSL_CTX_use_PrivateKey_file(ssl_ctx, key_filename.c_str(), SSL_FILETYPE_PEM) <= 0) {
+    throw runtime_error("cannot load SSL private key " + key_filename);
+  }
+  return ssl_ctx;
 }
 
 } // namespace EventAsync::HTTP
