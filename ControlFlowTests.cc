@@ -170,43 +170,51 @@ DetachedTask test_any_sleep(Base& base) {
   tasks.emplace_back(sleep_task(base, 3000000));
 
   uint64_t start = now();
-  co_await any(tasks.begin(), tasks.end());
+  auto* completed_task = co_await any(tasks.begin(), tasks.end());
   uint64_t duration = now() - start;
   fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
   expect_ge(duration, 1000000);
   expect_lt(duration, 2000000);
+  expect_eq(completed_task, &tasks[0]);
+  expect(completed_task->done());
   expect(tasks[0].done());
   expect(!tasks[1].done());
   expect(!tasks[2].done());
 
   // This should return almost immediately
   start = now();
-  co_await any(tasks.begin(), tasks.end());
+  completed_task = co_await any(tasks.begin(), tasks.end());
   duration = now() - start;
   fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
   expect_lt(duration, 1000000);
+  expect_eq(completed_task, &tasks[0]);
+  expect(completed_task->done());
   expect(tasks[0].done());
   expect(!tasks[1].done());
   expect(!tasks[2].done());
 
   start = now();
-  co_await any(tasks.begin() + 1, tasks.end());
+  completed_task = co_await any(tasks.begin() + 1, tasks.end());
   duration = now() - start;
   fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
   // duration could be slightly less than 1 second since we did some extra work
   // while the other tasks were still "running"
   expect_lt(duration, 2000000);
+  expect_eq(completed_task, &tasks[1]);
+  expect(completed_task->done());
   expect(tasks[0].done());
   expect(tasks[1].done());
   expect(!tasks[2].done());
 
   start = now();
-  co_await any(tasks.begin() + 2, tasks.end());
+  completed_task = co_await any(tasks.begin() + 2, tasks.end());
   duration = now() - start;
   fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
   // duration could be slightly less than 1 second since we did some extra work
   // while the other tasks were still "running"
   expect_lt(duration, 2000000);
+  expect_eq(completed_task, &tasks[2]);
+  expect(completed_task->done());
   expect(tasks[0].done());
   expect(tasks[1].done());
   expect(tasks[2].done());

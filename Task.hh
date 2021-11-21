@@ -75,15 +75,23 @@ public:
       }
     }
 
-    void await_resume() {
+    TaskBase* await_resume() {
+      TaskBase* ret = nullptr;
       for (auto task_it = this->tasks.begin(); task_it != this->tasks.end();) {
         if ((*task_it)->done()) {
+          if (ret == nullptr) {
+            ret = *task_it;
+          }
           task_it = this->tasks.erase(task_it);
         } else {
           (*task_it)->link(nullptr);
           task_it++;
         }
       }
+      if (ret == nullptr) {
+        throw std::logic_error("no task resumed during AnyAwaiter suspend");
+      }
+      return ret;
     }
 
   protected:
@@ -382,19 +390,22 @@ Task<void> all(IteratorT begin_it, IteratorT end_it) {
 }
 
 template <typename IteratorT>
-Task<void> any(IteratorT begin_it, IteratorT end_it) {
-  TaskBase<TaskPromise<void>>::AnyAwaiter aw;
+Task<typename std::iterator_traits<IteratorT>::value_type*>
+any(IteratorT begin_it, IteratorT end_it) {
+  using TaskT = typename std::iterator_traits<IteratorT>::value_type;
+  typename TaskT::AnyAwaiter aw;
+
   for (IteratorT it = begin_it; it != end_it; it++) {
     it->start();
     aw.add_task(&(*it));
   }
-  co_await aw;
-  // TODO: it would be nice to return the task that resolved first here
+  co_return reinterpret_cast<TaskT*>(co_await aw);
 }
 
 template <typename IteratorT>
 Task<void> all_limit(IteratorT begin_it, IteratorT end_it, size_t parallelism) {
-  TaskBase<TaskPromise<void>>::AnyAwaiter aw;
+  using TaskT = typename std::iterator_traits<IteratorT>::value_type;
+  typename TaskT::AnyAwaiter aw;
 
   IteratorT start_it = begin_it;
   while (start_it != end_it || aw.num_tasks() > 0) {
