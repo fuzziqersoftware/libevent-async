@@ -15,7 +15,10 @@ using namespace EventAsync;
 
 
 
-Task<void> print_reverse_lookup_result(DNSBase& dns_base, uint32_t s_addr) {
+Task<void> print_reverse_lookup_result(
+    Base& base, DNSBase& dns_base, uint32_t s_addr, uint64_t delay_usecs) {
+  co_await base.sleep(delay_usecs);
+
   struct in_addr addr;
   addr.s_addr = htonl(s_addr);
   auto result = co_await dns_base.resolve_reverse_ipv4(&addr);
@@ -42,24 +45,23 @@ Task<void> print_reverse_lookup_result(DNSBase& dns_base, uint32_t s_addr) {
 }
 
 DetachedTask print_reverse_range_lookup_results(
-    EventAsync::Base& base,
+    Base& base,
     uint32_t s_addr_base,
     uint8_t scope_bits,
-    uint64_t delay_usecs) {
+    uint64_t delay_usecs,
+    size_t parallelism) {
   s_addr_base &= ~((1 << (32 - scope_bits)) - 1);
-
   DNSBase dns_base(base);
+  vector<Task<void>> tasks;
   for (size_t x = 0; x < (1 << (32 - scope_bits)); x++) {
-    if (x) {
-      co_await base.sleep(delay_usecs);
-    }
-    co_await print_reverse_lookup_result(dns_base, s_addr_base | x);
+    tasks.emplace_back(print_reverse_lookup_result(base, dns_base, s_addr_base | x, delay_usecs));
   }
+  co_await all_limit(tasks.begin(), tasks.end(), parallelism);
 }
 
 int main(int argc, char** argv) {
-  if (argc < 2 || argc > 3) {
-    throw invalid_argument("Usage: RangeReverseDNS <ip-addr>/<scope-bits> [delay-usecs]\n");
+  if (argc < 2 || argc > 4) {
+    throw invalid_argument("Usage: RangeReverseDNS <ip-addr>/<scope-bits> [delay-usecs [parallelism]]\n");
   }
   string arg = argv[1];
   size_t slash_pos = arg.find('/');
@@ -74,9 +76,10 @@ int main(int argc, char** argv) {
   }
 
   uint64_t delay_usecs = (argc >= 3) ? strtoull(argv[2], nullptr, 0) : 1000000;
+  size_t parallelism = (argc >= 4) ? strtoull(argv[3], nullptr, 0) : 1;
 
   Base base;
-  print_reverse_range_lookup_results(base, s_addr_base, scope_bits, delay_usecs);
+  print_reverse_range_lookup_results(base, s_addr_base, scope_bits, delay_usecs, parallelism);
   base.run();
   return 0;
 }
