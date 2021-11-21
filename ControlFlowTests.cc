@@ -59,15 +59,15 @@ DetachedTask test_timeouts(Base& base) {
 
 
 
-Task<void> test_all_sleep_task(Base& base, uint64_t usecs) {
+Task<void> sleep_task(Base& base, uint64_t usecs) {
   co_await base.sleep(usecs);
 }
 
 DetachedTask test_all_sleep(Base& base) {
   vector<Task<void>> tasks;
-  tasks.emplace_back(test_all_sleep_task(base, 1000000));
-  tasks.emplace_back(test_all_sleep_task(base, 2000000));
-  tasks.emplace_back(test_all_sleep_task(base, 3000000));
+  tasks.emplace_back(sleep_task(base, 1000000));
+  tasks.emplace_back(sleep_task(base, 2000000));
+  tasks.emplace_back(sleep_task(base, 3000000));
 
   uint64_t start = now();
   co_await all(tasks.begin(), tasks.end());
@@ -163,6 +163,88 @@ DetachedTask test_all_network(Base& base) {
 
 
 
+DetachedTask test_any_sleep(Base& base) {
+  vector<Task<void>> tasks;
+  tasks.emplace_back(sleep_task(base, 1000000));
+  tasks.emplace_back(sleep_task(base, 2000000));
+  tasks.emplace_back(sleep_task(base, 3000000));
+
+  uint64_t start = now();
+  co_await any(tasks.begin(), tasks.end());
+  uint64_t duration = now() - start;
+  fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
+  expect_ge(duration, 1000000);
+  expect_lt(duration, 2000000);
+  expect(tasks[0].done());
+  expect(!tasks[1].done());
+  expect(!tasks[2].done());
+
+  // This should return almost immediately
+  start = now();
+  co_await any(tasks.begin(), tasks.end());
+  duration = now() - start;
+  fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
+  expect_lt(duration, 1000000);
+  expect(tasks[0].done());
+  expect(!tasks[1].done());
+  expect(!tasks[2].done());
+
+  start = now();
+  co_await any(tasks.begin() + 1, tasks.end());
+  duration = now() - start;
+  fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
+  // duration could be slightly less than 1 second since we did some extra work
+  // while the other tasks were still "running"
+  expect_lt(duration, 2000000);
+  expect(tasks[0].done());
+  expect(tasks[1].done());
+  expect(!tasks[2].done());
+
+  start = now();
+  co_await any(tasks.begin() + 2, tasks.end());
+  duration = now() - start;
+  fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
+  // duration could be slightly less than 1 second since we did some extra work
+  // while the other tasks were still "running"
+  expect_lt(duration, 2000000);
+  expect(tasks[0].done());
+  expect(tasks[1].done());
+  expect(tasks[2].done());
+
+  // None of these should throw
+  co_await tasks[0];
+  co_await tasks[1];
+  co_await tasks[2];
+}
+
+
+
+DetachedTask test_all_limit_sleep(Base& base) {
+  vector<Task<void>> tasks;
+  tasks.emplace_back(sleep_task(base, 1000000));
+  tasks.emplace_back(sleep_task(base, 1000000));
+  tasks.emplace_back(sleep_task(base, 1000000));
+  tasks.emplace_back(sleep_task(base, 1000000));
+  tasks.emplace_back(sleep_task(base, 1000000));
+
+  uint64_t start = now();
+  co_await all_limit(tasks.begin(), tasks.end(), 2);
+  uint64_t duration = now() - start;
+  fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
+  expect_ge(duration, 3000000);
+  expect_le(duration, 4000000);
+  for (const auto& task : tasks) {
+    expect(task.done());
+  }
+  co_await tasks[0];
+  co_await tasks[1];
+  co_await tasks[2];
+  co_await tasks[3];
+  co_await tasks[4];
+}
+
+
+
 int main(int argc, char** argv) {
   Base base;
 
@@ -188,6 +270,14 @@ int main(int argc, char** argv) {
 
   fprintf(stderr, "-- test_all_network\n");
   test_all_network(base);
+  base.run();
+
+  fprintf(stderr, "-- test_any_sleep\n");
+  test_any_sleep(base);
+  base.run();
+
+  fprintf(stderr, "-- test_all_limit_sleep\n");
+  test_all_limit_sleep(base);
   base.run();
 
   fprintf(stderr, "-- all tests passed\n");

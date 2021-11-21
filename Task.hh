@@ -2,6 +2,7 @@
 
 #include <experimental/coroutine>
 #include <memory>
+#include <unordered_set>
 #include <variant>
 
 
@@ -26,7 +27,7 @@ public:
 
     std::experimental::coroutine_handle<> await_suspend(
         std::experimental::coroutine_handle<> awaiting_coro) const noexcept {
-      this->task->coro.promise().set_awaiting_coro(awaiting_coro);
+      this->task->link(awaiting_coro);
       if (this->task->started) {
         return std::experimental::noop_coroutine();
       } else {
@@ -43,6 +44,50 @@ public:
   public:
     using AwaiterBase::AwaiterBase;
     void await_resume() { }
+  };
+
+  class AnyAwaiter {
+  public:
+    AnyAwaiter() = default;
+
+    void add_task(TaskBase* task) {
+      this->tasks.emplace(task);
+    }
+    size_t num_tasks() const {
+      return this->tasks.size();
+    }
+
+    bool await_ready() const {
+      for (const auto* task : this->tasks) {
+        if (task->done()) {
+          return true;
+        }
+        if (!task->started) {
+          throw std::logic_error("all tasks must be started before using AnyAwaiter");
+        }
+      }
+      return false;
+    }
+
+    void await_suspend(std::experimental::coroutine_handle<> awaiting_coro) const {
+      for (auto* task : this->tasks) {
+        task->link(awaiting_coro);
+      }
+    }
+
+    void await_resume() {
+      for (auto task_it = this->tasks.begin(); task_it != this->tasks.end();) {
+        if ((*task_it)->done()) {
+          task_it = this->tasks.erase(task_it);
+        } else {
+          (*task_it)->link(nullptr);
+          task_it++;
+        }
+      }
+    }
+
+  protected:
+    std::unordered_set<TaskBase*> tasks;
   };
 
   TaskBase() noexcept = default;
@@ -83,9 +128,13 @@ public:
     return this->coro.done();
   }
 
+  void link(std::experimental::coroutine_handle<> coro) {
+    this->coro.promise().set_awaiting_coro(coro);
+  }
+
 protected:
-   std::experimental::coroutine_handle<promise_type> coro;
-   bool started;
+  std::experimental::coroutine_handle<promise_type> coro;
+  bool started;
 };
 
 template <typename ReturnT>
@@ -319,16 +368,49 @@ private:
 
 
 template <typename IteratorT>
-Task<void> all(IteratorT start_it, IteratorT end_it) {
-  for (IteratorT it = start_it; it != end_it; it++) {
+Task<void> all(IteratorT begin_it, IteratorT end_it) {
+  for (IteratorT it = begin_it; it != end_it; it++) {
     it->start();
   }
-  for (IteratorT it = start_it; it != end_it; it++) {
+  for (IteratorT it = begin_it; it != end_it; it++) {
     // Note: We ignore exceptions here because the caller is expected to call
     // .result() on each task (or co_await it, even though it is guaranteed to
     // be complete when this function returns), at which point the exceptions
     // will be re-thrown.
     co_await it->wait();
+  }
+}
+
+template <typename IteratorT>
+Task<void> any(IteratorT begin_it, IteratorT end_it) {
+  TaskBase<TaskPromise<void>>::AnyAwaiter aw;
+  for (IteratorT it = begin_it; it != end_it; it++) {
+    it->start();
+    aw.add_task(&(*it));
+  }
+  co_await aw;
+  // TODO: it would be nice to return the task that resolved first here
+}
+
+template <typename IteratorT>
+Task<void> all_limit(IteratorT begin_it, IteratorT end_it, size_t parallelism) {
+  TaskBase<TaskPromise<void>>::AnyAwaiter aw;
+
+  IteratorT start_it = begin_it;
+  while (start_it != end_it || aw.num_tasks() > 0) {
+    // If there are already too many tasks running, wait for at least one of
+    // them to finish. Also, if there are no more tasks to start, wait for all
+    // of them to finish.
+    if (aw.num_tasks() >= parallelism || start_it == end_it) {
+      co_await aw;
+
+    // Otherwise, there are not too many tasks running and there are more tasks
+    // to start, so start one.
+    } else {
+      start_it->start();
+      aw.add_task(&(*start_it));
+      start_it++;
+    }
   }
 }
 

@@ -17,6 +17,8 @@ Everything here is in the namespace `EventAsync`.
   * `Task<ReturnT>`: The common coroutine task type. Functions defined with this return type are coroutines that co_return the specified type (which may be void). Execution does not begin until the task is co_awaited or .start() is called.
   * `DetachedTask`: Used for tasks that execute independently of their callers. Before calling Base::run, call one or more DetachedTasks in order to create servers and whatnot. Unlike AsyncTasks, DetachedTasks begin executing immediately when they are called, and are automatically destroyed when their coroutine returns. They may not return a value.
   * `co_await all(Iterator start, Iterator end)`: Runs all of the tasks in parallel (assuming they all block on I/O at some point), and returns when all tasks have either returned or thrown an exception. all() does not return a value; the caller must either co_await each task or call .result() on each task after all() returns.
+  * `co_await any(Iterator start, Iterator end)`: Similar to all(), but returns when any of the given tasks has returned or thrown an exception.
+  * `co_await all_limit(Iterator start, Iterator end, size_t parallelism)`: Similar to all(), but only runs up to a specific number of tasks at a time.
 * `Base`
   * `run`: Runs the event loop, just like event_base_dispatch().
   * `co_await base.sleep`: Suspends the caller for the given time.
@@ -28,7 +30,7 @@ Everything here is in the namespace `EventAsync`.
   * All standard `evbuffer_*` functions are present as methods on this class as well.
   * `co_await buffer.read_atmost`: Reads up to the given number of bytes from the given fd and adds it to the buffer. This awaiter resumes when *any* nonzero amount of data is read, which may be less than the amount requested.
   * `co_await buffer.read`: Reads the given number of bytes from the given fd and adds it to the buffer. This awaiter *does not* resume until the requested number of bytes have been read.
-  * `co_await buffer.read_to`: Reads enough bytes from the given fd such that the buffer contains at least the given number of bytes. If the buffer already has that much data or more, the caller is not suspended.
+  * `co_await buffer.read_to`: Reads enough bytes from the given fd such that the buffer contains at least the given number of bytes. If the buffer already has that much data or more, this function does nothing.
   * `co_await buffer.write`: Writes the given number of bytes from the buffer to the given fd. If size is not given or is negative, writes the entire contents of the buffer. The written data is drained from the buffer.
 
 ## The libhttp-async library
