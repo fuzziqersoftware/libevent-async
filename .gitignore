@@ -12,6 +12,8 @@ libmemcache-async.a
 # Executables
 ControlFlowTests
 EchoServerExample
+RangeReverseDNS
 Protocols/HTTP/ServerExample
 Protocols/HTTP/ClientExample
+Protocols/MySQL/BinlogReader
 Protocols/Memcache/FunctionalTest

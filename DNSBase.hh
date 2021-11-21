@@ -43,7 +43,7 @@ public:
   void set_option(const char* option, const char* val);
   int count_nameservers();
 
-// TODO: replace all of these callback functions with awaiters
+  // TODO: write an awaiter for getaddrinfo
 
   struct evdns_getaddrinfo_request* getaddrinfo(
       const char* nodename, const char* servname,
@@ -52,16 +52,90 @@ public:
       void* cbarg);
   void getaddrinfo_cancel(struct evdns_getaddrinfo_request*);
 
-  struct evdns_request* resolve_ipv4(const char* name, int flags,
-      evdns_callback_type callback, void* ctx);
-  struct evdns_request* resolve_ipv6(const char* name, int flags,
-      evdns_callback_type callback, void* ctx);
-  struct evdns_request* resolve_reverse(const struct in_addr* in, int flags,
-      evdns_callback_type callback, void* ctx);
-  struct evdns_request* resolve_reverse_ipv6(const struct in6_addr* in,
-      int flags, evdns_callback_type callback, void* ctx);
 
-  void cancel_request(struct evdns_request* req);
+
+  template <typename ResultT>
+  struct LookupResult {
+    int result_code;
+    int ttl;
+    std::vector<ResultT> results;
+  };
+
+  class LookupAwaiterBase {
+  public:
+    LookupAwaiterBase(DNSBase& dns_base, const void* target, int flags);
+    bool await_ready() const noexcept;
+    void await_suspend(std::experimental::coroutine_handle<> coro);
+
+  protected:
+    virtual void start_request() = 0;
+    virtual void on_request_complete(
+        int result, char type, int count, int ttl, const void* addresses) = 0;
+    static void dispatch_on_request_complete(
+        int result, char type, int count, int ttl, void* addresses, void* arg);
+
+    DNSBase& dns_base;
+    bool complete;
+    const void* target;
+    int flags;
+    std::experimental::coroutine_handle<> coro;
+  };
+
+  class LookupIPv4Awaiter : public LookupAwaiterBase {
+  public:
+    using LookupAwaiterBase::LookupAwaiterBase;
+    LookupResult<in_addr>&& await_resume();
+
+  protected:
+    LookupResult<in_addr> result;
+    virtual void start_request();
+    virtual void on_request_complete(
+        int result, char type, int count, int ttl, const void* addresses);
+  };
+
+  class LookupIPv6Awaiter : public LookupAwaiterBase {
+  public:
+    using LookupAwaiterBase::LookupAwaiterBase;
+    LookupResult<in6_addr>&& await_resume();
+
+  protected:
+    LookupResult<in6_addr> result;
+    virtual void start_request();
+    virtual void on_request_complete(
+        int result, char type, int count, int ttl, const void* addresses);
+  };
+
+  class LookupReverseAwaiterBase : public LookupAwaiterBase {
+  public:
+    using LookupAwaiterBase::LookupAwaiterBase;
+    LookupResult<std::string>&& await_resume();
+
+  protected:
+    LookupResult<std::string> result;
+    virtual void on_request_complete(
+        int result, char type, int count, int ttl, const void* addresses);
+  };
+
+  class LookupReverseIPv4Awaiter : public LookupReverseAwaiterBase {
+  public:
+    using LookupReverseAwaiterBase::LookupReverseAwaiterBase;
+  protected:
+    virtual void start_request();
+  };
+
+  class LookupReverseIPv6Awaiter : public LookupReverseAwaiterBase {
+  public:
+    using LookupReverseAwaiterBase::LookupReverseAwaiterBase;
+  protected:
+    virtual void start_request();
+  };
+
+  LookupIPv4Awaiter resolve_ipv4(const char* name, int flags = 0);
+  LookupIPv6Awaiter resolve_ipv6(const char* name, int flags = 0);
+  LookupReverseIPv4Awaiter resolve_reverse_ipv4(const struct in_addr* in,
+      int flags = 0);
+  LookupReverseIPv6Awaiter resolve_reverse_ipv6(const struct in6_addr* in,
+      int flags = 0);
 
   static const char* err_to_string(int err);
 

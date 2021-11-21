@@ -7,7 +7,7 @@ CXXFLAGS=-I/opt/homebrew/opt/openssl@1.1/include -I/opt/homebrew/include -I/usr/
 LDFLAGS=-L/opt/homebrew/opt/openssl@1.1/lib -L/opt/homebrew/lib -L/usr/local/opt/openssl@1.1/lib -L/usr/local/lib -L/opt/local/lib -lphosg -levent -lssl -lcrypto -levent_openssl -g -std=c++20 -lstdc++
 
 PACKAGE_LIBRARIES=libevent-async.a libhttp-async.a libmysql-async.a libmemcache-async.a
-PACKAGE_EXECUTABLES=ControlFlowTests EchoServerExample Protocols/HTTP/ServerExample Protocols/HTTP/ClientExample Protocols/Memcache/FunctionalTest Protocols/MySQL/BinlogReader
+PACKAGE_EXECUTABLES=ControlFlowTests EchoServerExample RangeReverseDNS Protocols/HTTP/ServerExample Protocols/HTTP/ClientExample Protocols/Memcache/FunctionalTest Protocols/MySQL/BinlogReader
 
 ifeq ($(shell uname -s),Darwin)
 	INSTALL_DIR=/opt/local
@@ -23,6 +23,9 @@ ControlFlowTests: ControlFlowTests.o $(OBJECTS)
 	g++ -o $@ $(LDFLAGS) $^
 
 EchoServerExample: EchoServerExample.o $(OBJECTS)
+	g++ -o $@ $(LDFLAGS) $^
+
+RangeReverseDNS: RangeReverseDNS.o $(OBJECTS)
 	g++ -o $@ $(LDFLAGS) $^
 
 Protocols/HTTP/ServerExample: Protocols/HTTP/ServerExample.o $(OBJECTS) $(HTTP_OBJECTS)

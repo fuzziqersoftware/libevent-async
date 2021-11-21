@@ -1,6 +1,7 @@
 #include "DNSBase.hh"
 
 using namespace std;
+using namespace std::experimental;
 
 
 
@@ -105,28 +106,153 @@ void DNSBase::getaddrinfo_cancel(struct evdns_getaddrinfo_request* req) {
   return evdns_getaddrinfo_cancel(req);
 }
 
-struct evdns_request* DNSBase::resolve_ipv4(
-    const char* name, int flags, evdns_callback_type cb, void* ctx) {
-  return evdns_base_resolve_ipv4(this->dns_base, name, flags, cb, ctx);
+
+
+DNSBase::LookupAwaiterBase::LookupAwaiterBase(
+    DNSBase& dns_base, const void* target, int flags)
+  : dns_base(dns_base),
+    complete(false),
+    target(target),
+    flags(flags),
+    coro(nullptr) { }
+
+bool DNSBase::LookupAwaiterBase::await_ready() const noexcept {
+  return this->complete;
 }
 
-struct evdns_request* DNSBase::resolve_ipv6(
-    const char* name, int flags, evdns_callback_type cb, void* ctx) {
-  return evdns_base_resolve_ipv6(this->dns_base, name, flags, cb, ctx);
+void DNSBase::LookupAwaiterBase::await_suspend(coroutine_handle<> coro) {
+  this->coro = coro;
+  this->start_request();
 }
 
-struct evdns_request* DNSBase::resolve_reverse(
-    const struct in_addr* in, int flags, evdns_callback_type cb, void* ctx) {
-  return evdns_base_resolve_reverse(this->dns_base, in, flags, cb, ctx);
+void DNSBase::LookupAwaiterBase::dispatch_on_request_complete(
+    int result, char type, int count, int ttl, void* addresses, void* arg) {
+  auto* aw = reinterpret_cast<LookupAwaiterBase*>(arg);
+  aw->on_request_complete(result, type, count, ttl, addresses);
+  aw->complete = true;
+  aw->coro.resume();
 }
 
-struct evdns_request* DNSBase::resolve_reverse_ipv6(
-    const struct in6_addr* in, int flags, evdns_callback_type cb, void* ctx) {
-  return evdns_base_resolve_reverse_ipv6(this->dns_base, in, flags, cb, ctx);
+DNSBase::LookupResult<in_addr>&& DNSBase::LookupIPv4Awaiter::await_resume() {
+  return move(this->result);
 }
 
-void DNSBase::cancel_request(struct evdns_request* req) {
-  return evdns_cancel_request(this->dns_base, req);
+void DNSBase::LookupIPv4Awaiter::start_request() {
+  if (evdns_base_resolve_ipv4(
+      this->dns_base.dns_base,
+      reinterpret_cast<const char*>(this->target),
+      this->flags,
+      &LookupAwaiterBase::dispatch_on_request_complete,
+      this) == nullptr) {
+    throw runtime_error("evdns_base_resolve_ipv4 failed");
+  }
+}
+
+void DNSBase::LookupIPv4Awaiter::on_request_complete(
+    int result, char type, int count, int ttl, const void* addresses) {
+  this->result.result_code = result;
+  if (this->result.result_code == DNS_ERR_NONE) {
+    if (type != DNS_IPv4_A) {
+      throw logic_error("IPv4 lookup did not result in A record");
+    }
+    this->result.ttl = ttl;
+    const in_addr* addrs = reinterpret_cast<const in_addr*>(addresses);
+    this->result.results.reserve(count);
+    for (int x = 0; x < count; x++) {
+      this->result.results.emplace_back(addrs[x]);
+    }
+  }
+}
+
+DNSBase::LookupResult<in6_addr>&& DNSBase::LookupIPv6Awaiter::await_resume() {
+  return move(this->result);
+}
+
+void DNSBase::LookupIPv6Awaiter::start_request() {
+  if (evdns_base_resolve_ipv6(
+      this->dns_base.dns_base,
+      reinterpret_cast<const char*>(this->target),
+      this->flags,
+      &LookupAwaiterBase::dispatch_on_request_complete,
+      this) == nullptr) {
+    throw runtime_error("evdns_base_resolve_ipv6 failed");
+  }
+}
+
+void DNSBase::LookupIPv6Awaiter::on_request_complete(
+    int result, char type, int count, int ttl, const void* addresses) {
+  this->result.result_code = result;
+  if (this->result.result_code == DNS_ERR_NONE) {
+    if (type != DNS_IPv6_AAAA) {
+      throw logic_error("IPv6 lookup did not result in AAAA record");
+    }
+    this->result.ttl = ttl;
+    const in6_addr* addrs = reinterpret_cast<const in6_addr*>(addresses);
+    this->result.results.reserve(count);
+    for (int x = 0; x < count; x++) {
+      this->result.results.emplace_back(addrs[x]);
+    }
+  }
+}
+
+DNSBase::LookupResult<string>&& DNSBase::LookupReverseAwaiterBase::await_resume() {
+  return move(this->result);
+}
+
+void DNSBase::LookupReverseAwaiterBase::on_request_complete(
+    int result, char type, int count, int ttl, const void* addresses) {
+  this->result.result_code = result;
+  if (this->result.result_code == DNS_ERR_NONE) {
+    if (type != DNS_PTR) {
+      throw logic_error("reverse lookup did not result in PTR record");
+    }
+    this->result.ttl = ttl;
+    const char* const * addrs = reinterpret_cast<const char* const *>(addresses);
+    this->result.results.reserve(count);
+    for (int x = 0; x < count; x++) {
+      this->result.results.emplace_back(addrs[x]);
+    }
+  }
+}
+
+void DNSBase::LookupReverseIPv4Awaiter::start_request() {
+  if (evdns_base_resolve_reverse(
+      this->dns_base.dns_base,
+      reinterpret_cast<const in_addr*>(this->target),
+      this->flags,
+      &LookupAwaiterBase::dispatch_on_request_complete,
+      this) == nullptr) {
+    throw runtime_error("evdns_base_resolve_reverse failed");
+  }
+}
+
+void DNSBase::LookupReverseIPv6Awaiter::start_request() {
+  if (evdns_base_resolve_reverse_ipv6(
+      this->dns_base.dns_base,
+      reinterpret_cast<const in6_addr*>(this->target),
+      this->flags,
+      &LookupAwaiterBase::dispatch_on_request_complete,
+      this) == nullptr) {
+    throw runtime_error("evdns_base_resolve_reverse_ipv6 failed");
+  }
+}
+
+DNSBase::LookupIPv4Awaiter DNSBase::resolve_ipv4(const char* name, int flags) {
+  return LookupIPv4Awaiter(*this, name, flags);
+}
+
+DNSBase::LookupIPv6Awaiter DNSBase::resolve_ipv6(const char* name, int flags) {
+  return LookupIPv6Awaiter(*this, name, flags);
+}
+
+DNSBase::LookupReverseIPv4Awaiter DNSBase::resolve_reverse_ipv4(
+    const struct in_addr* addr, int flags) {
+  return LookupReverseIPv4Awaiter(*this, addr, flags);
+}
+
+DNSBase::LookupReverseIPv6Awaiter DNSBase::resolve_reverse_ipv6(
+    const struct in6_addr* addr, int flags) {
+  return LookupReverseIPv6Awaiter(*this, addr, flags);
 }
 
 const char* err_to_string(int err) {
