@@ -162,6 +162,7 @@ EventAsync::DetachedTask read_binlogs(
         print_pos_comment_start(ev.header, filename);
         fprintf(stdout, "next log pos %s:%llu */\n",
             ev.next_filename.c_str(), ev.next_position);
+        filename = ev.next_filename;
         break;
       }
 
