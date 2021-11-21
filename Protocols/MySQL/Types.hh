@@ -105,8 +105,14 @@ enum ColumnType {
   T_TIME       = 0x0B,
   T_DATETIME   = 0x0C,
   T_YEAR       = 0x0D,
+  T_NEWDATE    = 0x0E,
   T_VARCHAR    = 0x0F,
   T_BIT        = 0x10,
+  T_TIMESTAMP2 = 0x11,
+  T_DATETIME2  = 0x12,
+  T_TIME2      = 0x13,
+  T_BOOL       = 0xF4,
+  T_JSON       = 0xF5,
   T_NEWDECIMAL = 0xF6,
   T_ENUM       = 0xF7,
   T_SET        = 0xF8,
@@ -119,6 +125,8 @@ enum ColumnType {
   T_GEOMETRY   = 0xFF,
 };
 
+const char* name_for_column_type(uint8_t type);
+
 struct DateTimeValue {
   uint16_t years;
   uint8_t months;
@@ -128,18 +136,19 @@ struct DateTimeValue {
   uint8_t seconds;
   uint32_t usecs;
 
+  DateTimeValue() = default;
   DateTimeValue(const std::string& str);
   std::string str() const;
 };
 
 struct TimeValue {
   bool is_negative;
-  uint32_t days;
-  uint8_t hours;
+  uint32_t hours;
   uint8_t minutes;
   uint8_t seconds;
   uint32_t usecs;
 
+  TimeValue() = default;
   TimeValue(const std::string& str);
   std::string str() const;
 };
@@ -181,6 +190,8 @@ struct ColumnDefinition {
   uint8_t decimals;
 };
 
+std::string format_cell_value(const Value& cell);
+
 struct ResultSet {
   std::vector<ColumnDefinition> columns;
   std::variant<
@@ -192,6 +203,11 @@ struct ResultSet {
   uint64_t insert_id;
   uint16_t status_flags;
   uint16_t warning_count;
+
+  std::vector<std::vector<Value>>& rows_vecs();
+  const std::vector<std::vector<Value>>& rows_vecs() const;
+  std::vector<std::unordered_map<std::string, Value>>& rows_dicts();
+  const std::vector<std::unordered_map<std::string, Value>>& rows_dicts() const;
 
   void print(FILE* stream) const;
 };

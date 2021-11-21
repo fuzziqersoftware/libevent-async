@@ -42,7 +42,9 @@ To use these, include `<event-async/Protocols/HTTP/Server.hh>`, `<event-async/Pr
 
 ## The libmysql-async library
 
-This library provides the class `EventAsync::MySQL::Client`. This client only supports caching_sha2_password authentication and can only do a few useful things; fortunately, one of those useful things is running SQL queries and returning result sets. See Protocols/MySQL/Client.hh for usage information.
+This library provides the classes `EventAsync::MySQL::Client` and `EventAsync::MySQL::BinlogProcessor`. To use the client, make a Client object and `co_await client.connect()`; after that, you can `co_await client.query(...)` to run SQL. See Protocols/MySQL/Client.hh for usage information. The client currently only supports caching_sha2_password authentication.
+
+You can also `co_await read_binlogs(...)` and `co_await get_binlog_event()` to read binlogs; to turn the binlog events into a more useful format, run them through a `BinlogProcessor` instance. See Protocols/MySQL/BinlogReader.cc for an example of this.
 
 To use this, include `<event-async/Protocols/MySQL/Client.hh>` and link with -lmysql-async.
 

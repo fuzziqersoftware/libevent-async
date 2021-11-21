@@ -28,7 +28,7 @@ Client::Client(
     password(password),
     fd(-1),
     next_seq(0),
-    reading_binlogs(false),
+    binlog_read_state(BinlogReadState::NOT_READING),
     expected_binlog_seq(0) { }
 
 Task<void> Client::connect() {
@@ -373,13 +373,13 @@ Task<void> Client::read_binlogs(
   buf.add(filename);
   co_await this->write_command(buf);
 
-  this->reading_binlogs = true;
+  this->binlog_read_state = BinlogReadState::READING_FIRST_EVENT;
   this->expected_binlog_seq = 1;
 }
 
 Task<string> Client::get_binlog_event() {
   this->assert_conn_open();
-  if (!this->reading_binlogs) {
+  if (this->binlog_read_state == BinlogReadState::NOT_READING) {
     throw logic_error("get_binlog_event called before read_binlogs or after out_of_range");
   }
 
@@ -388,9 +388,20 @@ Task<string> Client::get_binlog_event() {
 
   uint8_t command = buf.remove_u8();
   if (command == 0xFE) {
+    this->binlog_read_state = BinlogReadState::NOT_READING;
     throw out_of_range("end of binlog stream");
   } else if (command == 0) {
-    co_return buf.remove_string_eof();
+    string ret = buf.remove_string_eof();
+  //   It appears the first event is always an artificial ROTATE_EVENT and does
+    // NOT have a checksum; all subsequent ROTATE_EVENTs (even if artificial) DO
+    // have checksums.
+    // TODO: Is this a correct description of the actual behavior? Do we need
+    // fancier logic to handle these?
+    if (this->binlog_read_state != BinlogReadState::READING_FIRST_EVENT) {
+      ret.resize(ret.size() - 4);
+    }
+    this->binlog_read_state = BinlogReadState::READING_EVENT;
+    co_return ret;
   } else {
     throw runtime_error("binlog event does not begin with OK byte");
   }

@@ -75,7 +75,12 @@ private:
   uint8_t charset;
   uint16_t status_flags;
 
-  bool reading_binlogs;
+  enum class BinlogReadState {
+    NOT_READING,
+    READING_FIRST_EVENT,
+    READING_EVENT,
+  };
+  BinlogReadState binlog_read_state;
   uint8_t expected_binlog_seq;
 
   Task<void> read_command(ProtocolBuffer& buf);

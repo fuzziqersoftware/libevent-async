@@ -1,13 +1,13 @@
 OBJECTS=Task.o Config.o Base.o Event.o Buffer.o DNSBase.o
 HTTP_OBJECTS=Protocols/HTTP/Request.o Protocols/HTTP/Connection.o Protocols/HTTP/Server.o
-MYSQL_OBJECTS=Protocols/MySQL/Types.o Protocols/MySQL/ProtocolBuffer.o Protocols/MySQL/Client.o
+MYSQL_OBJECTS=Protocols/MySQL/Types.o Protocols/MySQL/ProtocolBuffer.o Protocols/MySQL/Client.o Protocols/MySQL/BinlogProcessor.o
 MEMCACHE_OBJECTS=Protocols/Memcache/Types.o Protocols/Memcache/Client.o
 CXX=g++ -fPIC
 CXXFLAGS=-I/opt/homebrew/opt/openssl@1.1/include -I/opt/homebrew/include -I/usr/local/opt/openssl@1.1/include -I/usr/local/include -I/opt/local/include -std=c++20 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
 LDFLAGS=-L/opt/homebrew/opt/openssl@1.1/lib -L/opt/homebrew/lib -L/usr/local/opt/openssl@1.1/lib -L/usr/local/lib -L/opt/local/lib -lphosg -levent -lssl -lcrypto -levent_openssl -g -std=c++20 -lstdc++
 
 PACKAGE_LIBRARIES=libevent-async.a libhttp-async.a libmysql-async.a libmemcache-async.a
-PACKAGE_EXECUTABLES=ControlFlowTests EchoServerExample Protocols/HTTP/ServerExample Protocols/HTTP/ClientExample Protocols/Memcache/FunctionalTest
+PACKAGE_EXECUTABLES=ControlFlowTests EchoServerExample Protocols/HTTP/ServerExample Protocols/HTTP/ClientExample Protocols/Memcache/FunctionalTest Protocols/MySQL/BinlogReader
 
 ifeq ($(shell uname -s),Darwin)
 	INSTALL_DIR=/opt/local
@@ -32,6 +32,9 @@ Protocols/HTTP/ClientExample: Protocols/HTTP/ClientExample.o $(OBJECTS) $(HTTP_O
 	g++ -o $@ $(LDFLAGS) $^
 
 Protocols/Memcache/FunctionalTest: Protocols/Memcache/FunctionalTest.o $(OBJECTS) $(MEMCACHE_OBJECTS)
+	g++ -o $@ $(LDFLAGS) $^
+
+Protocols/MySQL/BinlogReader: Protocols/MySQL/BinlogReader.o $(OBJECTS) $(MYSQL_OBJECTS)
 	g++ -o $@ $(LDFLAGS) $^
 
 install: $(PACKAGE_LIBRARIES)

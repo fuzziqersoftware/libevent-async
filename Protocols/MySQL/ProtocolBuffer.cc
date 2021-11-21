@@ -124,4 +124,45 @@ void ProtocolBuffer::add_zeroes(size_t count) {
   }
 }
 
+
+
+uint64_t ProtocolStringReader::get_varint() {
+  uint8_t v = this->get_u8();
+  if (v < 0xFB) {
+    return v;
+  } else if (v == 0xFB) {
+    throw runtime_error("length-encoded int is invalid (0xFB)");
+  } else if (v == 0xFC) {
+    return this->get_u16();
+  } else if (v == 0xFD) {
+    return this->get_u24();
+  } else if (v == 0xFE) {
+    return this->get_u64();
+  } else if (v == 0xFF) {
+    throw runtime_error("length-encoded int is invalid (0xFF)");
+  }
+  return v;
+}
+
+string ProtocolStringReader::get_string0() {
+  return this->get_cstr();
+}
+
+string ProtocolStringReader::get_var_string() {
+  return this->read(this->get_varint());
+}
+
+string ProtocolStringReader::get_string_eof() {
+  return this->read(this->size() - this->where());
+}
+
+vector<bool> ProtocolStringReader::get_bitmask(size_t num_bits) {
+  string data = this->read((num_bits + 7) / 8);
+  vector<bool> ret(num_bits);
+  for (size_t x = 0; x < num_bits; x++) {
+    ret[x] = (data[x >> 3] >> (x & 7)) & 1;
+  }
+  return ret;
+}
+
 } // namespace EventAsync::MySQL

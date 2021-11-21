@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include <string>
+#include <phosg/Strings.hh>
 #include "../../Buffer.hh"
 
 
@@ -36,6 +37,18 @@ public:
   void add_string0(const std::string& str);
   void add_var_string(const std::string& str);
   void add_zeroes(size_t count);
+};
+
+class ProtocolStringReader : public StringReader {
+public:
+  using StringReader::StringReader;
+  virtual ~ProtocolStringReader() = default;
+
+  uint64_t get_varint();
+  std::string get_string0();
+  std::string get_var_string();
+  std::string get_string_eof();
+  std::vector<bool> get_bitmask(size_t num_bits);
 };
 
 } // namespace EventAsync::MySQL
