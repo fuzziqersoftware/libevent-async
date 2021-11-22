@@ -232,11 +232,11 @@ public:
   }
 
   ReturnT& result() {
-    auto* result = std::get_if<0>(&this->value);
+    auto* result = std::get_if<ReturnT>(&this->value);
     if (result != nullptr) {
       return *result;
     } else {
-      std::rethrow_exception(std::get<1>(this->value));
+      std::rethrow_exception(std::get<std::exception_ptr>(this->value));
     }
   }
 

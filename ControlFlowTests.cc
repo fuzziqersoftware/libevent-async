@@ -15,6 +15,27 @@ using namespace EventAsync;
 
 
 
+struct Timer {
+  uint64_t start;
+  uint64_t low;
+  uint64_t high;
+
+  Timer(uint64_t low = 0, uint64_t high = 0)
+    : start(now()), low(low), high(high) { }
+  ~Timer() noexcept(false) {
+    uint64_t duration = now() - this->start;
+    fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
+    if (this->low) {
+      expect_ge(duration, this->low);
+    }
+    if (this->high) {
+      expect_le(duration, this->high);
+    }
+  }
+};
+
+
+
 Task<size_t> test_returns_fn1() {
   co_return 5;
 }
@@ -69,12 +90,10 @@ DetachedTask test_all_sleep(Base& base) {
   tasks.emplace_back(sleep_task(base, 2000000));
   tasks.emplace_back(sleep_task(base, 3000000));
 
-  uint64_t start = now();
-  co_await all(tasks.begin(), tasks.end());
-  uint64_t duration = now() - start;
-  fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
-  expect_ge(duration, 3000000);
-  expect_le(duration, 4000000);
+  {
+    Timer t(3000000, 4000000);
+    co_await all(tasks.begin(), tasks.end());
+  }
   for (const auto& task : tasks) {
     expect(task.done());
   }
@@ -100,12 +119,10 @@ DetachedTask test_all_sleep_exception(Base& base) {
   tasks.emplace_back(test_all_sleep_exception_task(base, 2000000));
   tasks.emplace_back(test_all_sleep_exception_task(base, 3000000));
 
-  uint64_t start = now();
-  co_await all(tasks.begin(), tasks.end());
-  uint64_t duration = now() - start;
-  fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
-  expect_ge(duration, 3000000);
-  expect_le(duration, 4000000);
+  {
+    Timer t(3000000, 4000000);
+    co_await all(tasks.begin(), tasks.end());
+  }
   for (const auto& task : tasks) {
     expect(task.done());
   }
@@ -150,10 +167,10 @@ DetachedTask test_all_network(Base& base) {
   tasks.emplace_back(test_all_network_fn(base, fds.first, 5, true));
   tasks.emplace_back(test_all_network_fn(base, fds.second, 5, false));
 
-  uint64_t start = now();
-  co_await all(tasks.begin(), tasks.end());
-  uint64_t duration = now() - start;
-  fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
+  {
+    Timer t;
+    co_await all(tasks.begin(), tasks.end());
+  }
   for (const auto& task : tasks) {
     expect(task.done());
   }
@@ -169,12 +186,11 @@ DetachedTask test_any_sleep(Base& base) {
   tasks.emplace_back(sleep_task(base, 2000000));
   tasks.emplace_back(sleep_task(base, 3000000));
 
-  uint64_t start = now();
-  auto* completed_task = co_await any(tasks.begin(), tasks.end());
-  uint64_t duration = now() - start;
-  fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
-  expect_ge(duration, 1000000);
-  expect_lt(duration, 2000000);
+  Task<void>* completed_task;
+  {
+    Timer t(1000000, 2000000);
+    completed_task = co_await any(tasks.begin(), tasks.end());
+  }
   expect_eq(completed_task, &tasks[0]);
   expect(completed_task->done());
   expect(tasks[0].done());
@@ -182,37 +198,34 @@ DetachedTask test_any_sleep(Base& base) {
   expect(!tasks[2].done());
 
   // This should return almost immediately
-  start = now();
-  completed_task = co_await any(tasks.begin(), tasks.end());
-  duration = now() - start;
-  fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
-  expect_lt(duration, 1000000);
+  {
+    Timer t(0, 1000000);
+    completed_task = co_await any(tasks.begin(), tasks.end());
+  }
   expect_eq(completed_task, &tasks[0]);
   expect(completed_task->done());
   expect(tasks[0].done());
   expect(!tasks[1].done());
   expect(!tasks[2].done());
 
-  start = now();
-  completed_task = co_await any(tasks.begin() + 1, tasks.end());
-  duration = now() - start;
-  fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
-  // duration could be slightly less than 1 second since we did some extra work
-  // while the other tasks were still "running"
-  expect_lt(duration, 2000000);
+  {
+    // duration could be slightly less than 1 second since we did some extra
+    // work while the other tasks were still "running"
+    Timer t(0, 2000000);
+    completed_task = co_await any(tasks.begin() + 1, tasks.end());
+  }
   expect_eq(completed_task, &tasks[1]);
   expect(completed_task->done());
   expect(tasks[0].done());
   expect(tasks[1].done());
   expect(!tasks[2].done());
 
-  start = now();
-  completed_task = co_await any(tasks.begin() + 2, tasks.end());
-  duration = now() - start;
-  fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
-  // duration could be slightly less than 1 second since we did some extra work
-  // while the other tasks were still "running"
-  expect_lt(duration, 2000000);
+  {
+    // duration could be slightly less than 1 second since we did some extra
+    // work while the other tasks were still "running"
+    Timer t(0, 2000000);
+    completed_task = co_await any(tasks.begin() + 2, tasks.end());
+  }
   expect_eq(completed_task, &tasks[2]);
   expect(completed_task->done());
   expect(tasks[0].done());
@@ -235,12 +248,10 @@ DetachedTask test_all_limit_sleep(Base& base) {
   tasks.emplace_back(sleep_task(base, 1000000));
   tasks.emplace_back(sleep_task(base, 1000000));
 
-  uint64_t start = now();
-  co_await all_limit(tasks.begin(), tasks.end(), 2);
-  uint64_t duration = now() - start;
-  fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
-  expect_ge(duration, 3000000);
-  expect_le(duration, 4000000);
+  {
+    Timer t(3000000, 4000000);
+    co_await all_limit(tasks.begin(), tasks.end(), 2);
+  }
   for (const auto& task : tasks) {
     expect(task.done());
   }
@@ -249,6 +260,225 @@ DetachedTask test_all_limit_sleep(Base& base) {
   co_await tasks[2];
   co_await tasks[3];
   co_await tasks[4];
+}
+
+
+
+Task<void> test_future_void_set(Base& base, Future<void>& f) {
+  co_await base.sleep(1000000);
+  f.set_result();
+}
+
+Task<void> test_future_void_await(Future<void>& f) {
+  co_await f;
+}
+
+DetachedTask test_future_void(Base& base) {
+  {
+    fprintf(stderr, "---- no awaiters\n");
+    Future<void> f;
+    {
+      Timer t(1000000, 2000000);
+      co_await test_future_void_set(base, f);
+    }
+    expect(f.has_result());
+  }
+
+  {
+    fprintf(stderr, "---- one awaiter\n");
+    Future<void> f;
+    vector<Task<void>> tasks;
+    tasks.emplace_back(test_future_void_set(base, f));
+    tasks.emplace_back(test_future_void_await(f));
+    {
+      Timer t(1000000, 2000000);
+      co_await all(tasks.begin(), tasks.end());
+    }
+    expect(f.has_result());
+  }
+
+  {
+    fprintf(stderr, "---- multiple awaiters\n");
+    Future<void> f;
+    vector<Task<void>> tasks;
+    tasks.emplace_back(test_future_void_set(base, f));
+    tasks.emplace_back(test_future_void_await(f));
+    tasks.emplace_back(test_future_void_await(f));
+    tasks.emplace_back(test_future_void_await(f));
+    {
+      Timer t(1000000, 2000000);
+      co_await all(tasks.begin(), tasks.end());
+    }
+    expect(f.has_result());
+  }
+}
+
+
+
+Task<void> test_future_void_set_exc(Base& base, Future<void>& f) {
+  co_await base.sleep(1000000);
+  f.set_exception(make_exception_ptr(out_of_range("nope")));
+}
+
+Task<void> test_future_void_await_exc(Future<void>& f) {
+  try {
+    co_await f;
+    throw logic_error("co_await f should have thrown but it did not");
+  } catch (const out_of_range&) { }
+}
+
+DetachedTask test_future_void_exc(Base& base) {
+  {
+    fprintf(stderr, "---- no awaiters\n");
+    Future<void> f;
+    {
+      Timer t(1000000, 2000000);
+      co_await test_future_void_set_exc(base, f);
+    }
+    expect(f.has_exception());
+    // awaiting the Future after it has an exception should throw immediately
+    co_await test_future_void_await_exc(f);
+  }
+
+  {
+    fprintf(stderr, "---- one awaiter\n");
+    Future<void> f;
+    vector<Task<void>> tasks;
+    tasks.emplace_back(test_future_void_set_exc(base, f));
+    tasks.emplace_back(test_future_void_await_exc(f));
+    {
+      Timer t(1000000, 2000000);
+      co_await all(tasks.begin(), tasks.end());
+    }
+    expect(f.has_exception());
+  }
+
+  {
+    fprintf(stderr, "---- multiple awaiters\n");
+    Future<void> f;
+    vector<Task<void>> tasks;
+    tasks.emplace_back(test_future_void_set_exc(base, f));
+    tasks.emplace_back(test_future_void_await_exc(f));
+    tasks.emplace_back(test_future_void_await_exc(f));
+    tasks.emplace_back(test_future_void_await_exc(f));
+    {
+      Timer t(1000000, 2000000);
+      co_await all(tasks.begin(), tasks.end());
+    }
+    expect(f.has_exception());
+  }
+}
+
+
+
+template <typename FutureT>
+Task<int64_t> test_future_set_value(Base& base, FutureT& f, int64_t value) {
+  co_await base.sleep(1000000);
+  f.set_result(value);
+  co_return move(value);
+}
+
+template <typename FutureT>
+Task<int64_t> test_future_await(Base& base, FutureT& f) {
+  co_return move(co_await f);
+}
+
+DetachedTask test_future_value(Base& base) {
+  {
+    fprintf(stderr, "---- no awaiters\n");
+    Future<int64_t> f;
+    {
+      Timer t(1000000, 2000000);
+      expect_eq(co_await test_future_set_value(base, f, 5), 5);
+    }
+    expect_eq(f.result(), 5);
+    expect_eq(co_await f, 5);
+  }
+
+  {
+    fprintf(stderr, "---- one awaiter\n");
+    Future<int64_t> f;
+    vector<Task<int64_t>> tasks;
+    tasks.emplace_back(test_future_set_value(base, f, 6));
+    tasks.emplace_back(test_future_await(base, f));
+    {
+      Timer t(1000000, 2000000);
+      co_await all(tasks.begin(), tasks.end());
+    }
+    expect_eq(f.result(), 6);
+    expect_eq(tasks[0].result(), 6);
+    expect_eq(tasks[1].result(), 6);
+    expect_eq(co_await f, 6);
+  }
+
+  {
+    fprintf(stderr, "---- multiple awaiters\n");
+    Future<int64_t> f;
+    vector<Task<int64_t>> tasks;
+    tasks.emplace_back(test_future_set_value(base, f, 7));
+    tasks.emplace_back(test_future_await(base, f));
+    tasks.emplace_back(test_future_await(base, f));
+    tasks.emplace_back(test_future_await(base, f));
+    {
+      Timer t(1000000, 2000000);
+      co_await all(tasks.begin(), tasks.end());
+    }
+    expect_eq(f.result(), 7);
+    expect_eq(tasks[0].result(), 7);
+    expect_eq(tasks[1].result(), 7);
+    expect_eq(tasks[2].result(), 7);
+    expect_eq(tasks[3].result(), 7);
+    expect_eq(co_await f, 7);
+  }
+}
+
+DetachedTask test_deferred_future_value(Base& base) {
+  {
+    fprintf(stderr, "---- no awaiters\n");
+    DeferredFuture<int64_t> f(base);
+    {
+      Timer t(1000000, 2000000);
+      expect_eq(co_await test_future_set_value(base, f, 5), 5);
+    }
+    expect_eq(f.result(), 5);
+    expect_eq(co_await f, 5);
+  }
+
+  {
+    fprintf(stderr, "---- one awaiter\n");
+    DeferredFuture<int64_t> f(base);
+    vector<Task<int64_t>> tasks;
+    tasks.emplace_back(test_future_set_value(base, f, 6));
+    tasks.emplace_back(test_future_await(base, f));
+    {
+      Timer t(1000000, 2000000);
+      co_await all(tasks.begin(), tasks.end());
+    }
+    expect_eq(f.result(), 6);
+    expect_eq(tasks[0].result(), 6);
+    expect_eq(tasks[1].result(), 6);
+    expect_eq(co_await f, 6);
+  }
+
+  {
+    fprintf(stderr, "---- multiple awaiters\n");
+    DeferredFuture<int64_t> f(base);
+    vector<Task<int64_t>> tasks;
+    tasks.emplace_back(test_future_set_value(base, f, 7));
+    tasks.emplace_back(test_future_await(base, f));
+    tasks.emplace_back(test_future_await(base, f));
+    tasks.emplace_back(test_future_await(base, f));
+    {
+      Timer t(1000000, 2000000);
+      co_await all(tasks.begin(), tasks.end());
+    }
+    expect_eq(f.result(), 7);
+    expect_eq(tasks[0].result(), 7);
+    expect_eq(tasks[1].result(), 7);
+    expect_eq(tasks[2].result(), 7);
+    expect_eq(tasks[3].result(), 7);
+    expect_eq(co_await f, 7);
+  }
 }
 
 
@@ -286,6 +516,22 @@ int main(int argc, char** argv) {
 
   fprintf(stderr, "-- test_all_limit_sleep\n");
   test_all_limit_sleep(base);
+  base.run();
+
+  fprintf(stderr, "-- test_future_void\n");
+  test_future_void(base);
+  base.run();
+
+  fprintf(stderr, "-- test_future_void_exc\n");
+  test_future_void_exc(base);
+  base.run();
+
+  fprintf(stderr, "-- test_future_value\n");
+  test_future_value(base);
+  base.run();
+
+  fprintf(stderr, "-- test_deferred_future_value\n");
+  test_deferred_future_value(base);
   base.run();
 
   fprintf(stderr, "-- all tests passed\n");

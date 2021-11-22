@@ -6,6 +6,7 @@
 #include <phosg/Network.hh>
 
 #include "Event.hh"
+#include "Future.hh"
 
 using namespace std;
 using namespace std::experimental;

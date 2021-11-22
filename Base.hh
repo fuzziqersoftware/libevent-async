@@ -7,6 +7,7 @@
 #include <string>
 
 #include "Task.hh"
+#include "Future.hh"
 #include "Config.hh"
 #include "Event.hh"
 
@@ -37,6 +38,8 @@ public:
       void (*cb)(evutil_socket_t, short, void*),
       void* cbarg,
       uint64_t timeout_usecs);
+
+  void call_soon(std::function<void(evutil_socket_t, short)> cb);
 
   class ReadAwaiter {
   public:
@@ -113,6 +116,31 @@ public:
 
 protected:
   static void dispatch_once_cb(evutil_socket_t fd, short what, void* ctx);
+};
+
+template <typename ValueT>
+class DeferredFuture : public Future<ValueT> {
+public:
+  explicit DeferredFuture(Base& base) : base(base) { }
+  DeferredFuture(const DeferredFuture&) = delete;
+  DeferredFuture(DeferredFuture&&);
+  DeferredFuture& operator=(const DeferredFuture&) = delete;
+  DeferredFuture& operator=(DeferredFuture&&);
+  virtual ~DeferredFuture() = default;
+
+  void resume_awaiters() {
+    static auto resume_coro = +[](evutil_socket_t fd, short what, void* addr) {
+      std::experimental::coroutine_handle<>::from_address(addr).resume();
+    };
+    while (!this->awaiting_coros.empty()) {
+      auto coro = this->awaiting_coros.front();
+      this->awaiting_coros.pop_front();
+      this->base.once(-1, EV_TIMEOUT, resume_coro, coro.address(), 0);
+    }
+  }
+
+protected:
+  Base& base;
 };
 
 } // namespace EventAsync
