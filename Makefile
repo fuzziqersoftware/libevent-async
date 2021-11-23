@@ -1,12 +1,17 @@
-OBJECTS=Task.o Config.o Base.o Event.o Buffer.o DNSBase.o
+CORE_OBJECTS=Task.o Config.o Base.o Event.o Buffer.o DNSBase.o
 HTTP_OBJECTS=Protocols/HTTP/Request.o Protocols/HTTP/Connection.o Protocols/HTTP/Server.o
 MYSQL_OBJECTS=Protocols/MySQL/Types.o Protocols/MySQL/ProtocolBuffer.o Protocols/MySQL/Client.o Protocols/MySQL/BinlogProcessor.o
 MEMCACHE_OBJECTS=Protocols/Memcache/Types.o Protocols/Memcache/Client.o
+ALL_OBJECTS=$(CORE_OBJECTS) $(HTTP_OBJECTS) $(MEMCACHE_OBJECTS) $(MYSQL_OBJECTS)
 CXX=g++ -fPIC
 CXXFLAGS=-I/opt/homebrew/opt/openssl@1.1/include -I/opt/homebrew/include -I/usr/local/opt/openssl@1.1/include -I/usr/local/include -I/opt/local/include -std=c++20 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
 LDFLAGS=-L/opt/homebrew/opt/openssl@1.1/lib -L/opt/homebrew/lib -L/usr/local/opt/openssl@1.1/lib -L/usr/local/lib -L/opt/local/lib -lphosg -levent -lssl -lcrypto -levent_openssl -g -std=c++20 -lstdc++
 
-PACKAGE_LIBRARIES=libevent-async.a libhttp-async.a libmysql-async.a libmemcache-async.a
+PACKAGE_LIBRARIES=\
+	libevent-async.a \
+	libhttp-async.a \
+	libmysql-async.a \
+	libmemcache-async.a
 PACKAGE_EXECUTABLES=\
 	Examples/ControlFlowTests \
 	Examples/EchoServer \
@@ -30,10 +35,24 @@ ifeq ($(shell uname -m),arm64)
 	LDFLAGS += -arch arm64
 endif
 
-all: $(PACKAGE_LIBRARIES) $(PACKAGE_EXECUTABLES)
+all: depend $(PACKAGE_LIBRARIES) $(PACKAGE_EXECUTABLES)
 
-Examples/%: Examples/%.o $(OBJECTS) $(HTTP_OBJECTS) $(MEMCACHE_OBJECTS) $(MYSQL_OBJECTS)
+Examples/%: Examples/%.o $(ALL_OBJECTS)
 	g++ -o $@ $(LDFLAGS) $^
+
+depend: $(ALL_OBJECTS:.o=.d)
+
+clean:
+	find . -name "*.o" -delete
+	rm -rf *.dSYM *.o gmon.out $(PACKAGE_LIBRARIES) $(PACKAGE_EXECUTABLES)
+
+clean-depend:
+	find . -name "*.d" -delete
+
+%.d: %.cc
+	$(CC) -MM $(CXXFLAGS) $< | sed 's,\($(*F)\)\.o[ :]*,$*.o $@ : ,g' > $@
+
+-include $(ALL_OBJECTS:.o=.d)
 
 install: $(PACKAGE_LIBRARIES)
 	mkdir -p $(INSTALL_DIR)/include/event-async
@@ -46,9 +65,9 @@ install: $(PACKAGE_LIBRARIES)
 	cp Protocols/MySQL/*.hh $(INSTALL_DIR)/include/event-async/Protocols/MySQL/
 	cp Protocols/Memcache/*.hh $(INSTALL_DIR)/include/event-async/Protocols/Memcache/
 
-libevent-async.a: $(OBJECTS)
+libevent-async.a: $(CORE_OBJECTS)
 	rm -f $@
-	ar rcs $@ $(OBJECTS)
+	ar rcs $@ $(CORE_OBJECTS)
 
 libhttp-async.a: $(HTTP_OBJECTS)
 	rm -f $@
@@ -61,9 +80,5 @@ libmysql-async.a: $(MYSQL_OBJECTS)
 libmemcache-async.a: $(MEMCACHE_OBJECTS)
 	rm -f $@
 	ar rcs $@ $(MEMCACHE_OBJECTS)
-
-clean:
-	find . -name "*.o" -delete
-	rm -rf *.dSYM *.o gmon.out $(PACKAGE_LIBRARIES) $(PACKAGE_EXECUTABLES)
 
 .PHONY: clean
