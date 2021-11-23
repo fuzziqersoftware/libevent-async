@@ -6,9 +6,9 @@
 #include <phosg/Network.hh>
 #include <phosg/Time.hh>
 
-#include "Task.hh"
-#include "Base.hh"
-#include "Buffer.hh"
+#include "../Task.hh"
+#include "../Base.hh"
+#include "../Buffer.hh"
 
 using namespace std;
 using namespace EventAsync;

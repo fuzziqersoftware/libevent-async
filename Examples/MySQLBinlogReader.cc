@@ -4,8 +4,8 @@
 #include <phosg/Strings.hh>
 #include <phosg/Time.hh>
 
-#include "Client.hh"
-#include "BinlogProcessor.hh"
+#include "../Protocols/MySQL/Client.hh"
+#include "../Protocols/MySQL/BinlogProcessor.hh"
 
 using namespace std;
 using namespace EventAsync::MySQL;
@@ -60,7 +60,8 @@ EventAsync::DetachedTask read_binlogs(
   for (;;) {
     string data = co_await client.get_binlog_event();
 
-    switch (proc.get_event_type(data)) {
+    const auto* header = proc.get_event_header(data);
+    switch (header->type) {
       // We don't print anything for these event types
       case EventAsync::MySQL::BinlogEventType::PREVIOUS_GTIDS_EVENT:
       case EventAsync::MySQL::BinlogEventType::ANONYMOUS_GTID_EVENT:

@@ -10,10 +10,10 @@ libmysql-async.a
 libmemcache-async.a
 
 # Executables
-ControlFlowTests
-EchoServerExample
-RangeReverseDNS
-Protocols/HTTP/ServerExample
-Protocols/HTTP/ClientExample
-Protocols/MySQL/BinlogReader
-Protocols/Memcache/FunctionalTest
+Examples/ControlFlowTests
+Examples/EchoServer
+Examples/RangeReverseDNS
+Examples/HTTPServer
+Examples/HTTPClient
+Examples/MySQLBinlogReader
+Examples/MemcacheFunctionalTest

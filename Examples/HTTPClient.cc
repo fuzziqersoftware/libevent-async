@@ -3,9 +3,9 @@
 #include <phosg/Network.hh>
 #include <phosg/Strings.hh>
 
-#include "Connection.hh"
-#include "Request.hh"
-#include "../../DNSBase.hh"
+#include "../Protocols/HTTP/Connection.hh"
+#include "../Protocols/HTTP/Request.hh"
+#include "../DNSBase.hh"
 
 using namespace std;
 

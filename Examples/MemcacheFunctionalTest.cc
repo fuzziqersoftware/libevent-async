@@ -1,7 +1,7 @@
 #include <phosg/Strings.hh>
 #include <phosg/UnitTest.hh>
 
-#include "Client.hh"
+#include "../Protocols/Memcache/Client.hh"
 
 using namespace std;
 

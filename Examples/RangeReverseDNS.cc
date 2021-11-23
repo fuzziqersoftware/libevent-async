@@ -6,9 +6,9 @@
 #include <phosg/Filesystem.hh>
 #include <phosg/Encoding.hh>
 
-#include "Task.hh"
-#include "Base.hh"
-#include "DNSBase.hh"
+#include "../Task.hh"
+#include "../Base.hh"
+#include "../DNSBase.hh"
 
 using namespace std;
 using namespace EventAsync;
