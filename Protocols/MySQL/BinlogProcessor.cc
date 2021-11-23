@@ -334,12 +334,11 @@ vector<Value> BinlogProcessor::read_row_data(
 
 BinlogProcessor::BinlogProcessor() : filename("<missing-filename>"), position(4) { }
 
-BinlogEventType BinlogProcessor::get_event_type(const string& data) {
+const BinlogEventHeader* BinlogProcessor::get_event_header(const string& data) {
   if (data.size() < sizeof(BinlogEventHeader)) {
     throw runtime_error("binlog event too small for header");
   }
-  const auto* header = reinterpret_cast<const BinlogEventHeader*>(data.data());
-  return static_cast<BinlogEventType>(header->type);
+  return reinterpret_cast<const BinlogEventHeader*>(data.data());
 }
 
 BinlogTableMapEvent BinlogProcessor::parse_table_map_event(const string& data) {
@@ -449,18 +448,24 @@ BinlogRowsEvent BinlogProcessor::parse_rows_event(const string& data) {
 
   while (!r.eof()) {
     auto& rc = ev.rows.emplace_back();
+    size_t start_offset = r.where();
     switch (ev.write_type) {
       case BinlogRowsEvent::WriteType::INSERT:
         rc.post = this->read_row_data(r, ev.ti);
+        rc.post_bytes = r.where() - start_offset;
         break;
       case BinlogRowsEvent::WriteType::UPDATE:
         if (has_preimage) {
           rc.pre = this->read_row_data(r, ev.ti);
+          rc.pre_bytes = r.where() - start_offset;
+          start_offset = r.where();
         }
         rc.post = this->read_row_data(r, ev.ti);
+        rc.post_bytes = r.where() - start_offset;
         break;
       case BinlogRowsEvent::WriteType::DELETE:
         rc.pre = this->read_row_data(r, ev.ti);
+        rc.pre_bytes = r.where() - start_offset;
         break;
     }
   }

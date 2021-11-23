@@ -104,6 +104,8 @@ struct BinlogRowsEvent {
   std::string extra_data; // unparsed
 
   struct RowChange {
+    size_t pre_bytes;
+    size_t post_bytes;
     std::vector<Value> pre;
     std::vector<Value> post;
   };
@@ -145,7 +147,7 @@ public:
   BinlogProcessor();
   ~BinlogProcessor() = default;
 
-  static BinlogEventType get_event_type(const std::string& data);
+  static const BinlogEventHeader* get_event_header(const std::string& data);
 
   BinlogTableMapEvent parse_table_map_event(const std::string& data);
   BinlogRowsEvent parse_rows_event(const std::string& data);

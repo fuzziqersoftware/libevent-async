@@ -463,6 +463,12 @@ void Buffer::commit_space(struct evbuffer_iovec* vec, int n_vecs) {
   }
 }
 
+void Buffer::add_reference(const string& data) {
+  if (evbuffer_add_reference(this->buf, data.data(), data.size(), nullptr, nullptr)) {
+    throw runtime_error("evbuffer_add_reference");
+  }
+}
+
 void Buffer::add_reference(const void* data, size_t size,
     void (*cleanup_fn)(const void* data, size_t size, void* ctx), void* ctx) {
   if (evbuffer_add_reference(this->buf, data, size, cleanup_fn, ctx)) {
@@ -488,8 +494,7 @@ void Buffer::add_reference(const void* data, size_t size,
 }
 
 static void dispatch_delete_string(const void* data, size_t size, void* ctx) {
-  string* s = reinterpret_cast<string*>(ctx);
-  delete s;
+  delete reinterpret_cast<string*>(ctx);
 }
 
 void Buffer::add(string&& data) {

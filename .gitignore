@@ -16,4 +16,5 @@ Examples/RangeReverseDNS
 Examples/HTTPServer
 Examples/HTTPClient
 Examples/MySQLBinlogReader
+Examples/MySQLBinlogStats
 Examples/MemcacheFunctionalTest

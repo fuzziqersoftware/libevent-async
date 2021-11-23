@@ -138,6 +138,7 @@ struct Buffer {
   int reserve_space(ev_ssize_t size, struct evbuffer_iovec* vec, int n_vecs);
   void commit_space(struct evbuffer_iovec* vec, int n_vecs);
 
+  void add_reference(const std::string& data);
   void add_reference(const void* data, size_t size,
       void (*cleanup_fn)(const void* data, size_t size, void* ctx) = nullptr,
       void* ctx = nullptr);
