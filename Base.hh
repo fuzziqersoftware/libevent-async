@@ -122,6 +122,8 @@ template <typename ValueT>
 class DeferredFuture : public Future<ValueT> {
 public:
   explicit DeferredFuture(Base& base) : base(base) { }
+  DeferredFuture(Base& base, const ValueT& v) : Future<ValueT>(v), base(base) { }
+  DeferredFuture(Base& base, ValueT&& v) : Future<ValueT>(move(v)), base(base) { }
   DeferredFuture(const DeferredFuture&) = delete;
   DeferredFuture(DeferredFuture&&);
   DeferredFuture& operator=(const DeferredFuture&) = delete;

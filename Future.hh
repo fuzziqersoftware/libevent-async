@@ -14,6 +14,8 @@ template <typename ResultT>
 class FutureBase {
 public:
   FutureBase() : awaiting_coros_insert_it(this->awaiting_coros.before_begin()) { }
+  FutureBase(const ResultT& value) : value(value) { }
+  FutureBase(ResultT&& value) : value(move(value)) { }
   FutureBase(const FutureBase&) = delete;
   FutureBase(FutureBase&&);
   FutureBase& operator=(const FutureBase&) = delete;
