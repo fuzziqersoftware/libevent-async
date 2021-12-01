@@ -28,6 +28,10 @@ Everything here is in the namespace `EventAsync`.
   * `future.set_exception(exc)`: Sets the exception of the future and resumes all awaiting coroutines. The exception is thrown into all awaiting coroutines at the co_await expression.
   * `future.cancel()`: Cancels the future, throwing Future::canceled_error into all awaiting coroutines.
   * DeferredFuture is like Future, except the awaiting coroutines are resumed via callbacks on a Base's event loop, instead of being resumed immediately during the set_value/set_exception call. DeferredFutures are therefore attached to a Base (see below), whereas Futures are not.
+* `Channel<ItemT>` (include `<event-async/Channel.hh>`)
+  * A channel is an awaitable queue of objects, which can be used to pass messages between coroutines. Make a Channel object, then pass a pointer/reference to it into multiple coroutines.
+  * `co_await channel.read()`: Dequeues an item from the queue. If the queue is empty, waits for someone to call .write() on it, then returns what they passed to .write().
+  * `channel.write(item)`: Enqueues an item into the queue. If ItemT is nontrivial, you may instead want to use `channel.write(std::move(item))`. If another coroutine is waiting on the queue (because it is empty), wakes up that coroutine. If multiple coroutines are waiting, wakes the one that has been waiting the longest. If no coroutines are waiting on the queue, .write() does not block; the message will just sit in the queue until someone calls .read().
 * `Base` (include `<event-async/Base.hh>`)
   * If you want to change options about the polling backend (for example), create a Config object first (`<event-async/Config.hh>`) and use that when constructing your Base. Config objects mirror the event_config functionality in libevent.
   * `base.run()`: Runs the event loop, just like event_base_dispatch().

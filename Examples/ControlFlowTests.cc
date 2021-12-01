@@ -9,6 +9,7 @@
 #include "../Task.hh"
 #include "../Base.hh"
 #include "../Buffer.hh"
+#include "../Channel.hh"
 
 using namespace std;
 using namespace EventAsync;
@@ -483,57 +484,103 @@ DetachedTask test_deferred_future_value(Base& base) {
 
 
 
+Task<int64_t> test_channel_read_task(Base& base, Channel<int64_t>& c) {
+  co_return (co_await c.read());
+}
+
+Task<int64_t> test_channel_write_task(Base& base, Channel<int64_t>& c,
+    uint64_t usecs, int64_t v) {
+  co_await base.sleep(usecs);
+  c.write(v);
+  co_return move(v);
+}
+
+DetachedTask test_channel(Base& base) {
+  {
+    fprintf(stderr, "---- write with no awaiters\n");
+    Channel<int64_t> c;
+    expect(c.empty());
+    c.write(5);
+    expect(!c.empty());
+
+    fprintf(stderr, "---- read with non-empty queue\n");
+    expect_eq(5, co_await c.read());
+    expect(c.empty());
+  }
+
+  {
+    fprintf(stderr, "---- one awaiter\n");
+    Channel<int64_t> c;
+    vector<Task<int64_t>> tasks;
+    tasks.emplace_back(test_channel_read_task(base, c));
+    tasks.emplace_back(test_channel_write_task(base, c, 500000, 6));
+    {
+      Timer t(500000, 1000000);
+      co_await all(tasks.begin(), tasks.end());
+    }
+    expect_eq(tasks[0].result(), 6);
+    expect_eq(tasks[1].result(), 6);
+    expect(c.empty());
+  }
+
+  {
+    fprintf(stderr, "---- multiple awaiters\n");
+    Channel<int64_t> c;
+    vector<Task<int64_t>> tasks;
+    tasks.emplace_back(test_channel_read_task(base, c));
+    tasks.emplace_back(test_channel_read_task(base, c));
+    tasks.emplace_back(test_channel_read_task(base, c));
+    tasks.emplace_back(test_channel_read_task(base, c));
+    tasks.emplace_back(test_channel_write_task(base, c, 500000, 7));
+    tasks.emplace_back(test_channel_write_task(base, c, 1000000, 8));
+    tasks.emplace_back(test_channel_write_task(base, c, 1500000, 9));
+    tasks.emplace_back(test_channel_write_task(base, c, 2000000, 10));
+    {
+      Timer t(2000000, 3000000);
+      co_await all(tasks.begin(), tasks.end());
+    }
+    expect_eq(tasks[0].result(), 7);
+    expect_eq(tasks[1].result(), 8);
+    expect_eq(tasks[2].result(), 9);
+    expect_eq(tasks[3].result(), 10);
+    expect_eq(tasks[4].result(), 7);
+    expect_eq(tasks[5].result(), 8);
+    expect_eq(tasks[6].result(), 9);
+    expect_eq(tasks[7].result(), 10);
+    expect(c.empty());
+  }
+}
+
+
+
 int main(int argc, char** argv) {
+
+  struct Case {
+    const char* name;
+    DetachedTask (*fn)(Base&);
+  };
+  vector<Case> test_cases = {
+    {"test_returns", test_returns},
+    {"test_exceptions", test_exceptions},
+    {"test_timeouts", test_timeouts},
+    {"test_all_sleep", test_all_sleep},
+    {"test_all_sleep_exception", test_all_sleep_exception},
+    {"test_all_network", test_all_network},
+    {"test_any_sleep", test_any_sleep},
+    {"test_all_limit_sleep", test_all_limit_sleep},
+    {"test_future_void", test_future_void},
+    {"test_future_void_exc", test_future_void_exc},
+    {"test_future_value", test_future_value},
+    {"test_deferred_future_value", test_deferred_future_value},
+    {"test_channel", test_channel},
+  };
+
   Base base;
-
-  fprintf(stderr, "-- test_returns\n");
-  test_returns(base);
-  base.run();
-
-  fprintf(stderr, "-- test_exceptions\n");
-  test_exceptions(base);
-  base.run();
-
-  fprintf(stderr, "-- test_timeouts\n");
-  test_timeouts(base);
-  base.run();
-
-  fprintf(stderr, "-- test_all_sleep\n");
-  test_all_sleep(base);
-  base.run();
-
-  fprintf(stderr, "-- test_all_sleep_exception\n");
-  test_all_sleep_exception(base);
-  base.run();
-
-  fprintf(stderr, "-- test_all_network\n");
-  test_all_network(base);
-  base.run();
-
-  fprintf(stderr, "-- test_any_sleep\n");
-  test_any_sleep(base);
-  base.run();
-
-  fprintf(stderr, "-- test_all_limit_sleep\n");
-  test_all_limit_sleep(base);
-  base.run();
-
-  fprintf(stderr, "-- test_future_void\n");
-  test_future_void(base);
-  base.run();
-
-  fprintf(stderr, "-- test_future_void_exc\n");
-  test_future_void_exc(base);
-  base.run();
-
-  fprintf(stderr, "-- test_future_value\n");
-  test_future_value(base);
-  base.run();
-
-  fprintf(stderr, "-- test_deferred_future_value\n");
-  test_deferred_future_value(base);
-  base.run();
-
+  for (const auto& test_case : test_cases) {
+    fprintf(stderr, "-- %s\n", test_case.name);
+    test_case.fn(base);
+    base.run();
+  }
   fprintf(stderr, "-- all tests passed\n");
 
   return 0;
