@@ -97,7 +97,7 @@ protected:
 
   class WebsocketClient {
   public:
-    WebsocketClient(Server* server, int fd);
+    WebsocketClient(Server* server, struct evhttp_connection* conn);
     WebsocketClient(const WebsocketClient&) = delete;
     WebsocketClient(WebsocketClient&&);
     WebsocketClient& operator=(const WebsocketClient&) = delete;
@@ -115,11 +115,12 @@ protected:
 
     // Sends a Websocket message to the client.
     Task<void> write(Buffer& buf, uint8_t opcode = 0x01);
-    Task<void> write(const std::string& data, uint8_t opcode = 0x01);
     Task<void> write(const void* data, size_t size, uint8_t opcode = 0x01);
 
   protected:
     Server* server;
+    struct evhttp_connection* conn;
+    struct bufferevent* bev;
     int fd;
     Buffer input_buf;
 

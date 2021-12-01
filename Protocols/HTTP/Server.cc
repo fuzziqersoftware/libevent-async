@@ -14,6 +14,7 @@
 
 #include <phosg/Encoding.hh>
 #include <phosg/Hash.hh>
+#include <phosg/Strings.hh>
 #include <string>
 #include <thread>
 #include <vector>
@@ -230,28 +231,46 @@ void Server::send_response(Request& req, int code,
 
 
 
-Server::WebsocketClient::WebsocketClient(Server* server, int fd)
+Server::WebsocketClient::WebsocketClient(
+    Server* server, struct evhttp_connection* conn)
   : server(server),
-    fd(fd),
+    conn(conn),
+    bev(evhttp_connection_get_bufferevent(this->conn)),
+    fd(bufferevent_getfd(this->bev)),
     input_buf(server->base) { }
 
 Server::WebsocketClient::WebsocketClient(WebsocketClient&& other)
   : server(other.server),
+    conn(other.conn),
+    bev(other.bev),
     fd(other.fd),
-    input_buf(move(other.input_buf)) {
+    input_buf(other.input_buf.base) {
+  other.conn = nullptr;
+  other.bev = nullptr;
   other.fd = -1;
+  this->input_buf.add_buffer(other.input_buf);
 }
 
 Server::WebsocketClient& Server::WebsocketClient::operator=(
     WebsocketClient&& other) {
   this->server = other.server;
+  this->conn = other.conn;
+  this->bev = other.bev;
   this->fd = other.fd;
+  this->input_buf.drain_all();
+  this->input_buf.add_buffer(other.input_buf);
+  other.conn = nullptr;
+  other.bev = nullptr;
   other.fd = -1;
   return *this;
 }
 
 Server::WebsocketClient::~WebsocketClient() {
-  if (this->fd >= 0) {
+  // Assume the evhttp_connection (if present) owns the fd, so we only need to
+  // free the conn or close the fd here (but not both).
+  if (this->conn) {
+    evhttp_connection_free(this->conn);
+  } else if (this->fd >= 0) {
     close(this->fd);
   }
 }
@@ -282,12 +301,9 @@ Task<shared_ptr<Server::WebsocketClient>> Server::enable_websockets(
   sec_websocket_accept_data += "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
   string sec_websocket_accept = base64_encode(sha1(sec_websocket_accept_data));
 
-  // Make a copy of the fd, since there doesn't appear to be a way to modify the
-  // bufferevent flags (to remove BEV_OPT_CLOSE_ON_FREE) after creation time.
   struct evhttp_connection* conn = req.get_connection();
   struct bufferevent* bev = evhttp_connection_get_bufferevent(conn);
-  int fd = dup(bufferevent_getfd(bev));
-  evhttp_connection_free(conn);
+  int fd = bufferevent_getfd(bev);
 
   // Send the HTTP reply, which enables websockets on the client side. All
   // communication after this will use the websocket protocol.
@@ -299,7 +315,7 @@ Sec-WebSocket-Accept: %s\r\n\
 \r\n", sec_websocket_accept.c_str());
   co_await buf.write(fd);
 
-  co_return shared_ptr<WebsocketClient>(new WebsocketClient(this, fd));
+  co_return shared_ptr<WebsocketClient>(new WebsocketClient(this, conn));
 }
 
 Server::WebsocketClient::WebsocketMessage::WebsocketMessage() : opcode(0) { }
@@ -329,7 +345,7 @@ Server::WebsocketClient::read() {
     }
 
     // Read the masking key if needed
-    bool has_mask = payload_size & 0x80;
+    bool has_mask = frame_size & 0x80;
     uint8_t mask_key[4];
     if (has_mask) {
       co_await this->input_buf.read_to(this->fd, 4);
@@ -353,10 +369,10 @@ Server::WebsocketClient::read() {
       if (opcode == 0x0A) { // Ping response
         // (Ignore these)
       } else if (opcode == 0x08) { // Quit
-        co_await this->write(frame_payload, 0x08);
+        co_await this->write(frame_payload.data(), frame_payload.size(), 0x08);
         throw runtime_error("client has disconnected");
       } else if (opcode == 0x09) { // Ping
-        co_await this->write(frame_payload, 0x0A);
+        co_await this->write(frame_payload.data(), frame_payload.size(), 0x0A);
       } else {
         throw runtime_error("unrecognized control message");
       }
@@ -398,14 +414,9 @@ Task<void> Server::WebsocketClient::write(Buffer& buf, uint8_t opcode) {
   } else {
     send_buf.add_u8(data_size);
   }
-  send_buf.add(buf);
+  send_buf.add_buffer(buf);
 
   co_await send_buf.write(this->fd);
-}
-
-Task<void> Server::WebsocketClient::write(
-    const std::string& data, uint8_t opcode) {
-  return this->write(data.data(), data.size(), opcode);
 }
 
 Task<void> Server::WebsocketClient::write(

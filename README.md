@@ -59,7 +59,7 @@ Everything here is in the namespace `EventAsync`.
 
 This library exists in the namespace `EventAsync::HTTP`.
 
-* `Server`: If you want to serve HTTP, HTTPS, or Websocket traffic, define a subclass of this and implement handle_request. Then instantiate your subclass and call add_socket one or more times before calling base.run(). See Examples/HTTPServer.cc.
+* `Server`: If you want to serve HTTP, HTTPS, or Websocket traffic, define a subclass of this and implement handle_request. Then instantiate your subclass and call add_socket one or more times before calling base.run(). See Examples/HTTPServer.cc and Examples/HTTPWebsocketServer.cc.
 * `Connection`/`Request`: These can be used to make outbound HTTP requests, optionally using OpenSSL. See Examples/HTTPClient.cc.
 
 To use these, include `<event-async/Protocols/HTTP/Server.hh>`, `<event-async/Protocols/HTTP/Connection.hh>`, and/or `<event-async/Protocols/HTTP/Request.hh>` and link with -lhttp-async.

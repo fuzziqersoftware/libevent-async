@@ -15,6 +15,7 @@ Examples/ControlFlowTests
 Examples/EchoServer
 Examples/RangeReverseDNS
 Examples/HTTPServer
+Examples/HTTPWebsocketServer
 Examples/HTTPClient
 Examples/MySQLBinlogReader
 Examples/MySQLBinlogStats

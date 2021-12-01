@@ -650,7 +650,7 @@ void Buffer::ReadExactlyAwaiter::on_read_ready(evutil_socket_t fd, short what, v
 Buffer::WriteAwaiter::WriteAwaiter(
     Buffer& buf,
     evutil_socket_t fd,
-    size_t limit)
+    ssize_t limit)
   : buf(buf),
     event(this->buf.base, fd, EV_WRITE, &WriteAwaiter::on_write_ready, this),
     limit(limit),
@@ -675,6 +675,7 @@ void Buffer::WriteAwaiter::await_resume() {
 
 void Buffer::WriteAwaiter::on_write_ready(evutil_socket_t fd, short what, void* ctx) {
   WriteAwaiter* aw = reinterpret_cast<WriteAwaiter*>(ctx);
+
   if (aw->limit < 0) {
     aw->limit = aw->buf.get_length();
   }

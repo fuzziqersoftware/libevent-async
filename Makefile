@@ -17,6 +17,7 @@ PACKAGE_EXECUTABLES=\
 	Examples/EchoServer \
 	Examples/RangeReverseDNS \
 	Examples/HTTPServer \
+	Examples/HTTPWebsocketServer \
 	Examples/HTTPClient \
 	Examples/MemcacheFunctionalTest \
 	Examples/MySQLBinlogReader \

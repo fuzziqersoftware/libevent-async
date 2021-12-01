@@ -210,7 +210,7 @@ struct Buffer {
     WriteAwaiter(
         Buffer& buf,
         evutil_socket_t fd,
-        size_t size);
+        ssize_t size);
     WriteAwaiter(const WriteAwaiter&) = delete;
     WriteAwaiter(WriteAwaiter&&) = delete;
     WriteAwaiter& operator=(const WriteAwaiter&) = delete;
