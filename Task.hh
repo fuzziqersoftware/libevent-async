@@ -375,6 +375,19 @@ private:
 
 
 
+template <typename TaskT>
+Task<void> multi(TaskT& t) {
+  t.start();
+  co_await t.wait();
+}
+
+template<typename FirstTaskT, typename... RemainingTasksTs>
+Task<void> multi(FirstTaskT& t, RemainingTasksTs& ...r) {
+  t.start();
+  co_await multi(r...);
+  co_await t.wait();
+}
+
 template <typename IteratorT>
 Task<void> all(IteratorT begin_it, IteratorT end_it) {
   for (IteratorT it = begin_it; it != end_it; it++) {

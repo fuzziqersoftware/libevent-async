@@ -105,6 +105,22 @@ DetachedTask test_all_sleep(Base& base) {
   co_await tasks[2];
 }
 
+DetachedTask test_multi_sleep(Base& base) {
+  auto t1 = sleep_task(base, 1000000);
+  auto t2 = sleep_task(base, 2000000);
+  auto t3 = sleep_task(base, 3000000);
+  {
+    Timer t(3000000, 4000000);
+    co_await multi(t1, t2, t3);
+  }
+  expect(t1.done());
+  expect(t2.done());
+  expect(t3.done());
+  co_await t1;
+  co_await t2;
+  co_await t3;
+}
+
 
 
 Task<void> test_all_sleep_exception_task(Base& base, uint64_t usecs) {
@@ -563,6 +579,7 @@ int main(int argc, char** argv) {
     {"test_returns", test_returns},
     {"test_exceptions", test_exceptions},
     {"test_timeouts", test_timeouts},
+    {"test_multi_sleep", test_multi_sleep},
     {"test_all_sleep", test_all_sleep},
     {"test_all_sleep_exception", test_all_sleep_exception},
     {"test_all_network", test_all_network},
