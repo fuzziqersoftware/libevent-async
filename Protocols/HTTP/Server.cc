@@ -162,8 +162,11 @@ void Server::dispatch_handle_request(
   s->handle_request(req_obj);
 }
 
-void Server::send_response(Request& req, int code,
-    const char* content_type, Buffer& buf) {
+void Server::send_response(
+    Request& req,
+    int code,
+    const char* content_type,
+    Buffer& buf) {
 
   req.add_output_header("Content-Type", content_type);
   if (!this->server_name.empty()) {
@@ -175,6 +178,27 @@ void Server::send_response(Request& req, int code,
       code,
       Server::explanation_for_response_code.at(code),
       buf.buf);
+}
+
+void Server::send_response(
+    Request& req,
+    int code,
+    const char* content_type,
+    const void* data,
+    size_t size) {
+  Buffer buf(this->base);
+  buf.add(data, size);
+  this->send_response(req, code, content_type, buf);
+}
+
+void Server::send_response(
+    Request& req,
+    int code,
+    const char* content_type,
+    string&& data) {
+  Buffer buf(this->base);
+  buf.add(move(data));
+  this->send_response(req, code, content_type, buf);
 }
 
 void Server::send_response(Request& req, int code,
@@ -208,11 +232,13 @@ void Server::send_response(Request& req, int code,
 
 Server::WebsocketClient::WebsocketClient(Server* server, int fd)
   : server(server),
-    fd(fd) { }
+    fd(fd),
+    input_buf(server->base) { }
 
 Server::WebsocketClient::WebsocketClient(WebsocketClient&& other)
   : server(other.server),
-    fd(other.fd) {
+    fd(other.fd),
+    input_buf(move(other.input_buf)) {
   other.fd = -1;
 }
 
@@ -280,12 +306,6 @@ Server::WebsocketClient::WebsocketMessage::WebsocketMessage() : opcode(0) { }
 
 Task<Server::WebsocketClient::WebsocketMessage>
 Server::WebsocketClient::read() {
-  auto& base = this->server->base;
-
-  // TODO: We should use evbuffers here to avoid making lots of small read()
-  // syscalls. We also should improve the evbuffer async API so this
-  // implementation won't be cumbersome.
-
   WebsocketMessage msg;
 
   // A message may be fragmented into multiple frames, so we may need to receive
@@ -294,31 +314,31 @@ Server::WebsocketClient::read() {
   for (;;) {
     // We need at most 10 bytes to determine if there's a valid frame, or as
     // little as 2.
-    uint8_t header_data[10];
-    co_await base.read(this->fd, header_data, 2);
+    co_await this->input_buf.read_to(this->fd, 2);
+    uint8_t frame_opcode = this->input_buf.remove_u8();
+    uint8_t frame_size = this->input_buf.remove_u8();
 
-    // figure out the payload size
-    bool has_mask = header_data[0] & 0x80;
-    size_t header_size = 2;
-    size_t payload_size = header_data[1] & 0x7F;
+    // Figure out the payload size
+    size_t payload_size = frame_size & 0x7F;
     if (payload_size == 0x7F) {
-      co_await base.read(this->fd, &header_data[2], 8);
-      payload_size = bswap64(*reinterpret_cast<const uint64_t*>(&header_data[2]));
-      header_size = 10;
+      co_await this->input_buf.read_to(this->fd, 8);
+      payload_size = this->input_buf.remove_u64r();
     } else if (payload_size == 0x7E) {
-      co_await base.read(this->fd, &header_data[2], 2);
-      payload_size = bswap16(*reinterpret_cast<const uint16_t*>(&header_data[2]));
-      header_size = 4;
+      co_await this->input_buf.read_to(this->fd, 2);
+      payload_size = this->input_buf.remove_u16r();
     }
 
     // Read the masking key if needed
+    bool has_mask = payload_size & 0x80;
     uint8_t mask_key[4];
     if (has_mask) {
-      co_await base.read(this->fd, mask_key, 4);
+      co_await this->input_buf.read_to(this->fd, 4);
+      this->input_buf.remove(mask_key, 4);
     }
 
     // Read the message data and unmask it
-    string frame_payload = co_await base.read(this->fd, payload_size);
+    co_await this->input_buf.read_to(this->fd, payload_size);
+    string frame_payload = this->input_buf.remove(payload_size);
     if (has_mask) {
       for (size_t x = 0; x < payload_size; x++) {
         frame_payload[x] ^= mask_key[x & 3];
@@ -328,16 +348,16 @@ Server::WebsocketClient::read() {
     // If the current message is a control message, respond appropriately. Note
     // that control messages can be sent in the middle of fragmented messages;
     // we should not fail if that happens.
-    uint8_t opcode = header_data[0] & 0x0F;
+    uint8_t opcode = frame_opcode & 0x0F;
     if (opcode & 0x08) {
-      if (opcode == 0x0A) {
-        // Ignore ping responses
+      if (opcode == 0x0A) { // Ping response
+        // (Ignore these)
       } else if (opcode == 0x08) { // Quit
         co_await this->write(frame_payload, 0x08);
         throw runtime_error("client has disconnected");
       } else if (opcode == 0x09) { // Ping
         co_await this->write(frame_payload, 0x0A);
-      } else { // Unrecognized control message
+      } else {
         throw runtime_error("unrecognized control message");
       }
 
@@ -356,35 +376,31 @@ Server::WebsocketClient::read() {
 
       // If the FIN bit is set, then the message is complete; otherwise, we need
       // to receive at least one more frame to complete the message.
-      if (header_data[0] & 0x80) {
+      if (frame_opcode & 0x80) {
         co_return msg;
       }
     }
   }
 }
 
-string Server::WebsocketClient::encode_websocket_message_header(
-    size_t data_size, uint8_t opcode) {
-  string header;
-  header.push_back(0x80 | (opcode & 0x0F));
-  if (data_size > 65535) {
-    header.push_back(0x7F);
-    header.resize(10);
-    *reinterpret_cast<uint64_t*>(const_cast<char*>(header.data() + 2)) = bswap64(data_size);
-  } else if (data_size > 0x7D) {
-    header.push_back(0x7E);
-    header.resize(4);
-    *reinterpret_cast<uint16_t*>(const_cast<char*>(header.data() + 2)) = bswap16(data_size);
-  } else {
-    header.push_back(data_size);
-  }
-  return header;
-}
-
 Task<void> Server::WebsocketClient::write(Buffer& buf, uint8_t opcode) {
-  string header = this->encode_websocket_message_header(buf.get_length(), opcode);
-  co_await this->server->base.write(this->fd, header);
-  co_await buf.write(this->fd);
+  size_t data_size = buf.get_length();
+
+  Buffer send_buf(this->server->base);
+  // We don't fragment outgoing frames, so the FIN bit is always set here.
+  send_buf.add_u8(0x80 | (opcode & 0x0F));
+  if (data_size > 0xFFFF) {
+    send_buf.add_u8(0x7F);
+    send_buf.add_u64r(data_size);
+  } else if (data_size > 0x7D) {
+    send_buf.add_u8(0x7E);
+    send_buf.add_u16r(data_size);
+  } else {
+    send_buf.add_u8(data_size);
+  }
+  send_buf.add(buf);
+
+  co_await send_buf.write(this->fd);
 }
 
 Task<void> Server::WebsocketClient::write(
@@ -394,9 +410,9 @@ Task<void> Server::WebsocketClient::write(
 
 Task<void> Server::WebsocketClient::write(
     const void* data, size_t size, uint8_t opcode) {
-  string header = this->encode_websocket_message_header(size, opcode);
-  co_await this->server->base.write(this->fd, header);
-  co_await this->server->base.write(this->fd, data, size);
+  Buffer buf(this->server->base);
+  buf.add_reference(data, size);
+  co_await this->write(buf, opcode);
 }
 
 

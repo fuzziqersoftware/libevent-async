@@ -59,12 +59,15 @@ protected:
 
   // When subclassing Server, you must implement this function to respond to
   // requests. Your implementation must either call one of the send_response
-  // functions above or convert the request into a Websocket stream.
+  // functions below or convert the request into a Websocket stream. Failure to
+  // do either of these will result in a memory leak.
   virtual DetachedTask handle_request(Request& req) = 0;
 
-  // Your handle_request implementation should call one of these functions to
-  // send a response to the request. Failure to do so will result in a memory
-  // leak.
+  // The send_response function sends a standard HTTP response to the client.
+  // The code is an HTTP code (e.g. 200, 404, etc.). Most forms of this function
+  // send a response with a body; the MIME type is specified by the content_type
+  // argument. The last form sends a response with no body (hence content_type
+  // is optional, and should usually be nullptr in this case).
   void send_response(
       Request& req,
       int code,
@@ -74,7 +77,19 @@ protected:
       Request& req,
       int code,
       const char* content_type,
-      const char* fmt, ...);
+      const void* data,
+      size_t size);
+  void send_response(
+      Request& req,
+      int code,
+      const char* content_type,
+      std::string&& data);
+  void send_response(
+      Request& req,
+      int code,
+      const char* content_type,
+      const char* fmt,
+      ...);
   void send_response(
       Request& req,
       int code,
@@ -106,16 +121,17 @@ protected:
   protected:
     Server* server;
     int fd;
+    Buffer input_buf;
 
     static std::string encode_websocket_message_header(size_t data_size,
         uint8_t opcode);
   };
 
   // Converts the current request into a Websocket stream. Returns a
-  // WebsocketClient object which you can use to send and receive websocket
-  // messages. If this function returns nullptr then the request wasn't a
-  // websocket request, or it failed to change protocols for some reason, and
-  // you should still call send_response as for a normal HTTP request.
+  // WebsocketClient object which you can use to send and receive Websocket
+  // messages. If you get nullptr instead of a client object, then the request
+  // wasn't a Websocket request or it failed to change protocols for some
+  // reason, and you should still call send_response as for a normal request.
   Task<std::shared_ptr<WebsocketClient>> enable_websockets(Request& req);
 
   static const std::unordered_map<int, const char*> explanation_for_response_code;
