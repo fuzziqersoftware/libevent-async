@@ -5,7 +5,7 @@ MEMCACHE_OBJECTS=Protocols/Memcache/Types.o Protocols/Memcache/Client.o
 ALL_OBJECTS=$(CORE_OBJECTS) $(HTTP_OBJECTS) $(MEMCACHE_OBJECTS) $(MYSQL_OBJECTS)
 CXX=g++ -fPIC
 CXXFLAGS=-I/opt/homebrew/opt/openssl@1.1/include -I/opt/homebrew/include -I/usr/local/opt/openssl@1.1/include -I/usr/local/include -I/opt/local/include -std=c++20 -g -DHAVE_INTTYPES_H -DHAVE_NETINET_IN_H -Wall -Werror
-LDFLAGS=-L/opt/homebrew/opt/openssl@1.1/lib -L/opt/homebrew/lib -L/usr/local/opt/openssl@1.1/lib -L/usr/local/lib -L/opt/local/lib -lphosg -levent -lssl -lcrypto -levent_openssl -g -std=c++20 -lstdc++
+LDFLAGS=-L/opt/homebrew/opt/openssl@1.1/lib -L/opt/homebrew/lib -L/usr/local/opt/openssl@1.1/lib -L/usr/local/lib -L/opt/local/lib -lphosg -levent -levent_pthreads -lssl -lcrypto -levent_openssl -g -std=c++20 -lstdc++
 
 PACKAGE_LIBRARIES=\
 	libevent-async.a \

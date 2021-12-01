@@ -119,6 +119,7 @@ public:
     this->resume_awaiters();
   }
 
+protected:
   void resume_awaiters() {
     while (!this->awaiting_coros.empty()) {
       auto coro = this->awaiting_coros.front();
@@ -127,7 +128,6 @@ public:
     }
   }
 
-protected:
   std::variant<std::monostate, ResultT, std::exception_ptr> value;
   std::forward_list<std::experimental::coroutine_handle<>> awaiting_coros;
   std::forward_list<std::experimental::coroutine_handle<>>::iterator awaiting_coros_insert_it;
