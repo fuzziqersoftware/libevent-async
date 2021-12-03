@@ -17,9 +17,9 @@ class Channel {
 public:
   Channel() : awaiting_coros_insert_it(this->awaiting_coros.before_begin()) { }
   Channel(const Channel&) = delete;
-  Channel(Channel&&);
+  Channel(Channel&&) = default;
   Channel& operator=(const Channel&) = delete;
-  Channel& operator=(Channel&&);
+  Channel& operator=(Channel&&) = default;
   virtual ~Channel() noexcept(false) {
     // Throwing in a destructor is a Bad Idea. But it's also a Bad Idea to let
     // a Channel be destroyed while someone is waiting on it!
@@ -35,9 +35,9 @@ public:
     return this->queue.size();
   }
 
-  class Awaiter {
+  class ReadAwaiter {
   public:
-    Awaiter(Channel& c) : c(c) { }
+    ReadAwaiter(Channel& c) : c(c) { }
 
     bool await_ready() const noexcept {
       return !this->c.queue.empty();
@@ -58,8 +58,8 @@ public:
     Channel& c;
   };
 
-  Awaiter read() {
-    return Awaiter(*this);
+  ReadAwaiter read() {
+    return ReadAwaiter(*this);
   }
 
   void write(const ItemT& v) {
