@@ -157,8 +157,10 @@ EventAsync::DetachedTask generate_binlog_stats(
       current_filename.c_str(), current_position);
 
   BinlogProcessor proc;
+  size_t transaction_event_bytes = 0;
   for (;;) {
     string data = co_await client.get_binlog_event();
+    transaction_event_bytes += data.size();
 
     const BinlogEventHeader* header = proc.get_event_header(data);
     // Artificial events have 0 in this field. We'll calculate an incorrect
@@ -236,9 +238,12 @@ EventAsync::DetachedTask generate_binlog_stats(
         }
 
         if (ev.query == "BEGIN") {
+          transaction_event_bytes = data.size();
           co_await statsd.send("mysql.binlog.transaction_begin", 1, 'c', tags);
         } else if (ev.query == "COMMIT") {
           co_await statsd.send("mysql.binlog.transaction_commit", 1, 'c', tags);
+          co_await statsd.send("mysql.binlog.transaction_event_bytes", transaction_event_bytes, 'd', tags);
+          transaction_event_bytes = 0;
         } else {
           co_await statsd.send("mysql.binlog.query", 1, 'c', tags);
         }
@@ -253,6 +258,8 @@ EventAsync::DetachedTask generate_binlog_stats(
       case EventAsync::MySQL::BinlogEventType::XID_EVENT: {
         proc.parse_xid_event(data);
         co_await statsd.send("mysql.binlog.transaction_commit_xid", 1, 'c', tags);
+        co_await statsd.send("mysql.binlog.transaction_event_bytes", transaction_event_bytes, 'd', tags);
+        transaction_event_bytes = 0;
         break;
       }
 
