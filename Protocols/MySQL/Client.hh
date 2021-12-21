@@ -38,8 +38,11 @@ public:
 
   // Runs a SQL query. If rows_as_dicts is true, returns row contents as
   // unordered_maps; otherwise, returns them as vectors whose length and order
-  // matches the columns vector.
+  // matches the columns vector. If running multiple queries in a single call,
+  // use query_multi instead.
   Task<ResultSet> query(const std::string& sql, bool rows_as_dicts = true);
+  Task<std::vector<ResultSet>> query_multi(
+      const std::string& sql, bool rows_as_dicts = true);
 
   // Starts a binlog stream. To read binlogs, call this method to start reading,
   // then call get_binlog_event infinitely many times or until it throws

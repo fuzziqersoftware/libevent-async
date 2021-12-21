@@ -27,7 +27,6 @@ EventAsync::DetachedTask read_binlogs(
   if (filename.empty() || start_position == 0) {
     fprintf(stderr, "Reading master position from server\n");
     auto result = co_await client.query("SHOW MASTER STATUS");
-    result.print(stderr);
     const auto& rows = result.rows_dicts();
     if (rows.size() != 1) {
       throw runtime_error("SHOW MASTER STATUS did not return one row");

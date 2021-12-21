@@ -121,9 +121,9 @@ Task<void> Client::initial_handshake() {
       auth_plugin_name, auth_challenge_data, this->password);
 
   // Capability flags we use: LongPassword, Protocol41, Transactions,
-  // SecureConnection, MultiResults, PluginAuth, PluginAuthLenencClientData,
-  // DeprecateEOF
-  static const uint32_t client_cap_flags = 0x012AA201;
+  // SecureConnection, MultiStatements, MultiResults, PluginAuth,
+  // PluginAuthLenencClientData, DeprecateEOF
+  static const uint32_t client_cap_flags = 0x012BA201;
   buf.add_u32(client_cap_flags);
   buf.add_u32(0xFFFFFFFF); // max_allowed_packet
   buf.add_u8(0xFF); // charset
@@ -250,7 +250,15 @@ Task<void> Client::change_db(const string& db_name) {
 
 
 
-Task<ResultSet> Client::query(const std::string& sql, bool rows_as_dicts) {
+Task<ResultSet> Client::query(const string& sql, bool rows_as_dicts) {
+  auto ret = co_await this->query_multi(sql, rows_as_dicts);
+  if (ret.size() != 1) {
+    throw logic_error("query returned multiple result sets; use query_multi instead");
+  }
+  co_return move(ret[0]);
+}
+
+Task<vector<ResultSet>> Client::query_multi(const string& sql, bool rows_as_dicts) {
   this->assert_conn_open();
   this->reset_seq();
 
@@ -259,91 +267,104 @@ Task<ResultSet> Client::query(const std::string& sql, bool rows_as_dicts) {
   buf.add(sql);
   co_await this->write_command(buf);
 
-  // The first response command speecifies either that the query completed (if
-  // no result set is returned), that the query failed, or how many columns are
-  // in the returned result set
-  ResultSet res;
-  co_await this->read_command(buf);
-  uint8_t response_command = buf.copyout_u8();
-  if (response_command == 0x00) { // OK
-    buf.remove_u8();
-    res.affected_rows = buf.remove_varint();
-    res.insert_id = buf.remove_varint();
-    res.status_flags = buf.remove_u16();
-    res.warning_count = buf.remove_u16();
-    co_return move(res);
-  } else if (response_command == 0xFF) { // ERR
-    this->parse_error_body(buf);
-  } else if (response_command == 0xFB) { // LOCAL INFILE request
-    throw runtime_error("LOCAL INFILE requests are not implemented");
-  }
-
-  // If we get here, then a result set is being returned. Set up the return
-  // structures appropriately.
-  if (rows_as_dicts) {
-    res.rows = vector<unordered_map<string, Value>>();
-  } else {
-    res.rows = vector<vector<Value>>();
-  }
-
-  // The column definitions are sent as individual commands first.
-  uint64_t column_count = buf.remove_varint();
-  while (res.columns.size() < column_count) {
-    co_await this->read_command(buf);
-
-    ColumnDefinition& def = res.columns.emplace_back();
-    def.catalog_name = buf.remove_var_string();
-    def.database_name = buf.remove_var_string();
-    def.table_name = buf.remove_var_string();
-    def.original_table_name = buf.remove_var_string();
-    def.column_name = buf.remove_var_string();
-    def.original_column_name = buf.remove_var_string();
-    if (buf.remove_varint() != 0x0C) {
-      throw runtime_error("column metadata has incorrect fixed-length header");
-    }
-    def.charset = buf.remove_u16();
-    def.max_value_length = buf.remove_u32();
-    def.type = static_cast<ColumnType>(buf.remove_u8());
-    def.flags = buf.remove_u16();
-    def.decimals = buf.remove_u8();
-    buf.remove_u16(); // unused
-  }
-
-  // After the column definitions, each row is sent as an individual command.
+  vector<ResultSet> ret;
   for (;;) {
+    // The first response command specifies either that the query completed (if
+    // no result set is returned), that the query failed, or how many columns
+    // are in the result set
+    ResultSet res;
     co_await this->read_command(buf);
-
-    if (buf.copyout_u8() == 0xFE) {
+    uint8_t response_command = buf.copyout_u8();
+    if (response_command == 0x00) { // OK
       buf.remove_u8();
-      res.affected_rows = 0;
-      res.insert_id = 0;
-      res.warning_count = buf.remove_u16();
+      res.affected_rows = buf.remove_varint();
+      res.insert_id = buf.remove_varint();
       res.status_flags = buf.remove_u16();
-      co_return move(res);
+      res.warning_count = buf.remove_u16();
+      ret.emplace_back(move(res));
+      if (!(res.status_flags & StatusFlag::MoreResultsExist)) {
+        co_return move(ret);
+      }
+      continue;
+
+    } else if (response_command == 0xFF) { // ERR
+      this->parse_error_body(buf);
+    } else if (response_command == 0xFB) { // LOCAL INFILE request
+      throw runtime_error("LOCAL INFILE requests are not implemented");
     }
 
+    // If we get here, then a result set is being returned. Set up the return
+    // structures appropriately.
     if (rows_as_dicts) {
-      auto& row = get<vector<unordered_map<string, Value>>>(res.rows)
-          .emplace_back();
-      for (const auto& column_def : res.columns) {
-        if (buf.copyout_u8() == 0xFB) {
-          buf.remove_u8();
-          row.emplace(column_def.column_name, nullptr);
-        } else {
-          row.emplace(
-              column_def.column_name,
-              parse_value(column_def.type, buf.remove_var_string()));
+      res.rows = vector<unordered_map<string, Value>>();
+    } else {
+      res.rows = vector<vector<Value>>();
+    }
+
+    // The column definitions are sent as individual commands first.
+    uint64_t column_count = buf.remove_varint();
+    while (res.columns.size() < column_count) {
+      co_await this->read_command(buf);
+
+      ColumnDefinition& def = res.columns.emplace_back();
+      def.catalog_name = buf.remove_var_string();
+      def.database_name = buf.remove_var_string();
+      def.table_name = buf.remove_var_string();
+      def.original_table_name = buf.remove_var_string();
+      def.column_name = buf.remove_var_string();
+      def.original_column_name = buf.remove_var_string();
+      if (buf.remove_varint() != 0x0C) {
+        throw runtime_error("column metadata has incorrect fixed-length header");
+      }
+      def.charset = buf.remove_u16();
+      def.max_value_length = buf.remove_u32();
+      def.type = static_cast<ColumnType>(buf.remove_u8());
+      def.flags = buf.remove_u16();
+      def.decimals = buf.remove_u8();
+      buf.remove_u16(); // unused
+    }
+
+    // After the column definitions, each row is sent as an individual command.
+    for (;;) {
+      co_await this->read_command(buf);
+
+      if (buf.copyout_u8() == 0xFE) {
+        buf.remove_u8();
+        res.affected_rows = 0;
+        res.insert_id = 0;
+        res.warning_count = buf.remove_u16();
+        res.status_flags = buf.remove_u16();
+        ret.emplace_back(move(res));
+        if (!(res.status_flags & StatusFlag::MoreResultsExist)) {
+          co_return move(ret);
         }
+        buf.drain_all(); // ignore extra bytes in EOFs
+        break;
       }
 
-    } else {
-      auto& row = get<vector<vector<Value>>>(res.rows).emplace_back();
-      for (const auto& column_def : res.columns) {
-        if (buf.copyout_u8() == 0xFB) {
-          buf.remove_u8();
-          row.emplace_back(nullptr);
-        } else {
-          row.emplace_back(parse_value(column_def.type, buf.remove_var_string()));
+      if (rows_as_dicts) {
+        auto& row = get<vector<unordered_map<string, Value>>>(res.rows)
+            .emplace_back();
+        for (const auto& column_def : res.columns) {
+          if (buf.copyout_u8() == 0xFB) {
+            buf.remove_u8();
+            row.emplace(column_def.column_name, nullptr);
+          } else {
+            row.emplace(
+                column_def.column_name,
+                parse_value(column_def.type, buf.remove_var_string()));
+          }
+        }
+
+      } else {
+        auto& row = get<vector<vector<Value>>>(res.rows).emplace_back();
+        for (const auto& column_def : res.columns) {
+          if (buf.copyout_u8() == 0xFB) {
+            buf.remove_u8();
+            row.emplace_back(nullptr);
+          } else {
+            row.emplace_back(parse_value(column_def.type, buf.remove_var_string()));
+          }
         }
       }
     }
