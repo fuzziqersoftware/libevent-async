@@ -48,7 +48,7 @@ bool DetachedTaskPromise::FinalAwaiter::await_ready() const noexcept {
 }
 
 void DetachedTaskPromise::FinalAwaiter::await_suspend(
-    coroutine_handle<> coro) noexcept {
+    coroutine_handle<>) noexcept {
   this->handle->cancel();
 }
 

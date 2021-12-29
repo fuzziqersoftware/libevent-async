@@ -128,7 +128,7 @@ bool Base::ReadAwaiter::await_ready() {
       throw runtime_error("failed to read from fd");
     }
 
-  } else if (bytes_read < this->size) {
+  } else if (static_cast<size_t>(bytes_read) < this->size) {
     // There's more data to read. Adjust data/size and wait for more data.
     this->data = reinterpret_cast<uint8_t*>(this->data) + bytes_read;
     this->size -= bytes_read;
@@ -159,7 +159,7 @@ void Base::ReadAwaiter::await_resume() {
   }
 }
 
-void Base::ReadAwaiter::on_read_ready(evutil_socket_t fd, short what, void* ctx) {
+void Base::ReadAwaiter::on_read_ready(evutil_socket_t, short, void* ctx) {
   ReadAwaiter* aw = reinterpret_cast<ReadAwaiter*>(ctx);
   ssize_t bytes_read = ::read(aw->fd, aw->data, aw->size);
   if (bytes_read < 0) {
@@ -172,7 +172,7 @@ void Base::ReadAwaiter::on_read_ready(evutil_socket_t fd, short what, void* ctx)
       aw->coro.resume();
     }
 
-  } else if (bytes_read < aw->size) {
+  } else if (static_cast<size_t>(bytes_read) < aw->size) {
     // There's more data to read. Adjust data/size and wait for more data.
     aw->data = reinterpret_cast<uint8_t*>(aw->data) + bytes_read;
     aw->size -= bytes_read;
@@ -211,7 +211,7 @@ bool Base::WriteAwaiter::await_ready() {
       throw runtime_error("failed to write to fd");
     }
 
-  } else if (bytes_written < this->size) {
+  } else if (static_cast<size_t>(bytes_written) < this->size) {
     // There's more data to write. Adjust data/size and wait for the buffer to
     // drain.
     this->data = reinterpret_cast<const uint8_t*>(this->data) + bytes_written;
@@ -239,7 +239,7 @@ void Base::WriteAwaiter::await_resume() {
   }
 }
 
-void Base::WriteAwaiter::on_write_ready(evutil_socket_t fd, short what, void* ctx) {
+void Base::WriteAwaiter::on_write_ready(evutil_socket_t, short, void* ctx) {
   WriteAwaiter* aw = reinterpret_cast<WriteAwaiter*>(ctx);
   ssize_t bytes_written = ::write(aw->fd, aw->data, aw->size);
   if (bytes_written < 0) {
@@ -252,7 +252,7 @@ void Base::WriteAwaiter::on_write_ready(evutil_socket_t fd, short what, void* ct
       aw->coro.resume();
     }
 
-  } else if (bytes_written < aw->size) {
+  } else if (static_cast<size_t>(bytes_written) < aw->size) {
     // There's more data to write. Adjust data/size and wait for the buffer to
     // drain.
     aw->data = reinterpret_cast<const uint8_t*>(aw->data) + bytes_written;
@@ -301,7 +301,7 @@ int Base::AcceptAwaiter::await_resume() {
   return this->accepted_fd;
 }
 
-void Base::AcceptAwaiter::on_accept_ready(int fd, short what, void* ctx) {
+void Base::AcceptAwaiter::on_accept_ready(int, short, void* ctx) {
   AcceptAwaiter* aw = reinterpret_cast<AcceptAwaiter*>(ctx);
   socklen_t addr_size = aw->addr ? sizeof(*aw->addr) : 0;
   aw->accepted_fd = ::accept(

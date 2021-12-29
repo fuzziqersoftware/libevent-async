@@ -1,8 +1,14 @@
+# Finder files (macOS)
 .DS_Store
-*.dSYM
-*.d
-*.o
-gmon.out
+
+# CMake files
+CMakeCache.txt
+CMakeFiles
+Makefile
+CTestTestFile.cmake
+Testing
+cmake_install.cmake
+install_manifest.txt
 
 # Libraries
 libevent-async.a
@@ -11,12 +17,12 @@ libmysql-async.a
 libmemcache-async.a
 
 # Executables
-Examples/ControlFlowTests
-Examples/EchoServer
-Examples/RangeReverseDNS
-Examples/HTTPServer
-Examples/HTTPWebsocketServer
-Examples/HTTPClient
-Examples/MySQLBinlogReader
-Examples/MySQLBinlogStats
-Examples/MemcacheFunctionalTest
+ControlFlowTests
+EchoServer
+RangeReverseDNS
+HTTPServer
+HTTPWebsocketServer
+HTTPClient
+MySQLBinlogReader
+MySQLBinlogStats
+MemcacheFunctionalTest

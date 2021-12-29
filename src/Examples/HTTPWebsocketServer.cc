@@ -85,7 +85,7 @@ protected:
   }
 };
 
-int main(int argc, char** argv) {
+int main(int, char**) {
   signal(SIGPIPE, SIG_IGN);
 
   if (!isdir("HTTPWebsocketServer-Static")) {

@@ -103,7 +103,7 @@ void EventAwaiter::await_resume() {
   this->coro = nullptr;
 }
 
-void EventAwaiter::on_trigger(evutil_socket_t fd, short what, void* ctx) {
+void EventAwaiter::on_trigger(evutil_socket_t, short, void* ctx) {
   reinterpret_cast<EventAwaiter*>(ctx)->coro.resume();
 }
 
@@ -125,7 +125,7 @@ void TimeoutAwaiter::await_resume() {
   this->coro = nullptr;
 }
 
-void TimeoutAwaiter::on_trigger(evutil_socket_t fd, short what, void* ctx) {
+void TimeoutAwaiter::on_trigger(evutil_socket_t, short, void* ctx) {
   reinterpret_cast<TimeoutAwaiter*>(ctx)->coro.resume();
 }
 

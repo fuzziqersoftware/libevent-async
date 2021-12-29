@@ -171,7 +171,7 @@ void Buffer::remove_exactly(void* data, size_t size) {
   int ret = evbuffer_remove(this->buf, data, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_remove");
-  } else if (ret < size) {
+  } else if (static_cast<size_t>(ret) < size) {
     throw runtime_error("not enough data in buffer");
   }
 }
@@ -202,7 +202,7 @@ void Buffer::copyout_exactly(void* data, size_t size) {
   int ret = evbuffer_copyout(this->buf, data, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_copyout");
-  } else if (ret < size) {
+  } else if (static_cast<size_t>(ret) < size) {
     throw runtime_error("not enough data in buffer");
   }
 }
@@ -233,7 +233,7 @@ void Buffer::copyout_from_exactly(const struct evbuffer_ptr* pos, void* data, si
   ssize_t ret = evbuffer_copyout_from(this->buf, pos, data, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_copyout_from");
-  } else if (ret < size) {
+  } else if (static_cast<size_t>(ret) < size) {
     throw runtime_error("not enough data in buffer");
   }
 }
@@ -493,7 +493,7 @@ void Buffer::add_reference(const void* data, size_t size,
   }
 }
 
-static void dispatch_delete_string(const void* data, size_t size, void* ctx) {
+static void dispatch_delete_string(const void*, size_t, void* ctx) {
   delete reinterpret_cast<string*>(ctx);
 }
 
@@ -603,7 +603,7 @@ size_t Buffer::ReadAtMostAwaiter::await_resume() {
   return this->bytes_read;
 }
 
-void Buffer::ReadAtMostAwaiter::on_read_ready(evutil_socket_t fd, short what, void* ctx) {
+void Buffer::ReadAtMostAwaiter::on_read_ready(evutil_socket_t, short, void* ctx) {
   ReadAtMostAwaiter* aw = reinterpret_cast<ReadAtMostAwaiter*>(ctx);
   ssize_t bytes_read = evbuffer_read(aw->buf.buf, aw->event.get_fd(), aw->limit);
   aw->err = (bytes_read < 0);
@@ -627,7 +627,7 @@ void Buffer::ReadExactlyAwaiter::await_resume() {
   }
 }
 
-void Buffer::ReadExactlyAwaiter::on_read_ready(evutil_socket_t fd, short what, void* ctx) {
+void Buffer::ReadExactlyAwaiter::on_read_ready(evutil_socket_t, short, void* ctx) {
   ReadExactlyAwaiter* aw = reinterpret_cast<ReadExactlyAwaiter*>(ctx);
   ssize_t bytes_read = evbuffer_read(
       aw->buf.buf, aw->event.get_fd(), aw->limit - aw->bytes_read);
@@ -673,7 +673,7 @@ void Buffer::WriteAwaiter::await_resume() {
   }
 }
 
-void Buffer::WriteAwaiter::on_write_ready(evutil_socket_t fd, short what, void* ctx) {
+void Buffer::WriteAwaiter::on_write_ready(evutil_socket_t fd, short, void* ctx) {
   WriteAwaiter* aw = reinterpret_cast<WriteAwaiter*>(ctx);
 
   if (aw->limit < 0) {
@@ -687,7 +687,7 @@ void Buffer::WriteAwaiter::on_write_ready(evutil_socket_t fd, short what, void* 
     return;
   }
   aw->bytes_written += bytes_written;
-  if (aw->bytes_written != aw->limit) {
+  if (static_cast<ssize_t>(aw->bytes_written) != aw->limit) {
     aw->event.add();
   } else {
     aw->coro.resume();

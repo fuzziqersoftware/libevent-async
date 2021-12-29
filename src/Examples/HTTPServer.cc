@@ -26,7 +26,7 @@ protected:
   }
 };
 
-int main(int argc, char** argv) {
+int main(int, char**) {
   EventAsync::Base base;
   ExampleHTTPServer server(base);
   server.add_socket(listen("", 5050, SOMAXCONN));

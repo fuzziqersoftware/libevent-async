@@ -33,7 +33,7 @@ EventAsync::DetachedTask run_server(EventAsync::Base& base, int port) {
   }
 }
 
-int main(int argc, char** argv) {
+int main(int, char**) {
   EventAsync::Base base;
   run_server(base, 5050);
   base.run();

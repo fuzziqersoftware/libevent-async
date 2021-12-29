@@ -569,7 +569,7 @@ DetachedTask test_channel(Base& base) {
 
 
 
-int main(int argc, char** argv) {
+int main(int, char**) {
 
   struct Case {
     const char* name;

@@ -131,7 +131,7 @@ public:
   virtual ~DeferredFuture() = default;
 
   void resume_awaiters() {
-    static auto resume_coro = +[](evutil_socket_t fd, short what, void* addr) {
+    static auto resume_coro = +[](evutil_socket_t, short, void* addr) {
       std::experimental::coroutine_handle<>::from_address(addr).resume();
     };
     while (!this->awaiting_coros.empty()) {

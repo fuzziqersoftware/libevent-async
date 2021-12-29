@@ -143,7 +143,7 @@ const char* Request::get_uri() {
   return evhttp_request_get_uri(this->req);
 }
 
-void Request::on_response(struct evhttp_request* ev_req, void* ctx) {
+void Request::on_response(struct evhttp_request*, void* ctx) {
   auto* req = reinterpret_cast<Request*>(ctx);
 
   // By default, calling evhttp_make_request causes the request to become owned
