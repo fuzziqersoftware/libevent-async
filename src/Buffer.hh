@@ -34,7 +34,8 @@ struct Buffer {
   void add(const void* data, size_t size);
   void add(const std::string& data);
 
-  size_t add_printf(const char* fmt, ...);
+  size_t add_printf(const char* fmt, ...)
+  __attribute__((format(printf, 2, 3)));
   size_t add_vprintf(const char* fmt, va_list va);
 
   void add_buffer(struct evbuffer* src);
