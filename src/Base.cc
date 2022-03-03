@@ -94,11 +94,96 @@ Base::WriteAwaiter Base::write(evutil_socket_t fd, const string& data) {
   return WriteAwaiter(*this, fd, data.data(), data.size());
 }
 
+Base::RecvFromAwaiter Base::recvfrom(evutil_socket_t fd, size_t max_size) {
+  return RecvFromAwaiter(*this, fd, max_size);
+}
+
 Task<int> Base::connect(const std::string& addr, int port) {
   // TODO: this does a blocking DNS query if addr isn't an IP address string
   int fd = ::connect(addr, port, true);
   co_await EventAwaiter(*this, fd, EV_WRITE);
   co_return move(fd);
+}
+
+
+
+Base::RecvFromAwaiter::RecvFromAwaiter(
+    Base& base, evutil_socket_t fd, size_t max_size)
+  : base(base), event(), fd(fd), max_size(max_size), err(false), coro(nullptr) { }
+
+bool Base::RecvFromAwaiter::await_ready() {
+  socklen_t ss_len = sizeof(struct sockaddr_storage);
+  this->res.data.resize(this->max_size, '\0');
+  ssize_t bytes_read = ::recvfrom(
+      this->fd, this->res.data.data(), this->res.data.size(), 0,
+      reinterpret_cast<struct sockaddr*>(&this->res.addr), &ss_len);
+
+  if (bytes_read < 0) {
+    // Failed to read for some reason. Try again later if there's just no data;
+    // otherwise throw an exception to the awaiting coroutine.
+    if (errno == EWOULDBLOCK || errno == EAGAIN) {
+      return false;
+    } else {
+      throw runtime_error("failed to read from fd");
+    }
+
+  } else if (bytes_read == 0) {
+    throw runtime_error("zero-length message");
+
+  } else {
+    // A message was read; the awaiting coroutine does not need to be suspended.
+    this->res.data_available = bytes_read;
+    if (this->res.data_available < this->res.data.size()) {
+      this->res.data.resize(bytes_read);
+    }
+    return true;
+  }
+}
+
+void Base::RecvFromAwaiter::await_suspend(coroutine_handle<> coro) {
+  this->coro = coro;
+  this->event = Event(
+      this->base, this->fd, EV_READ, &RecvFromAwaiter::on_read_ready, this);
+  this->event.add();
+}
+
+Base::RecvFromResult&& Base::RecvFromAwaiter::await_resume() {
+  if (this->err) {
+    throw runtime_error("failed to read from fd");
+  }
+  return move(this->res);
+}
+
+void Base::RecvFromAwaiter::on_read_ready(evutil_socket_t, short, void* ctx) {
+  RecvFromAwaiter* aw = reinterpret_cast<RecvFromAwaiter*>(ctx);
+
+  socklen_t ss_len = sizeof(struct sockaddr_storage);
+  aw->res.data.resize(aw->max_size, '\0');
+  ssize_t bytes_read = ::recvfrom(
+      aw->fd, aw->res.data.data(), aw->res.data.size(), 0,
+      reinterpret_cast<struct sockaddr*>(&aw->res.addr), &ss_len);
+
+  if (bytes_read < 0) {
+    // Failed to read for some reason. Try again later if there's just no data;
+    // otherwise throw an exception to the awaiting coroutine.
+    if (errno == EWOULDBLOCK || errno == EAGAIN) {
+      aw->event.add();
+    } else {
+      aw->err = true;
+      aw->coro.resume();
+    }
+
+  } else if (bytes_read == 0) {
+    aw->err = true;
+
+  } else {
+    // A message was read; the awaiting coroutine does not need to be suspended.
+    aw->res.data_available = bytes_read;
+    if (aw->res.data_available < aw->res.data.size()) {
+      aw->res.data.resize(bytes_read);
+    }
+    aw->coro.resume();
+  }
 }
 
 
@@ -119,6 +204,7 @@ Base::ReadAwaiter::ReadAwaiter(
 
 bool Base::ReadAwaiter::await_ready() {
   ssize_t bytes_read = ::read(this->fd, this->data, this->size);
+
   if (bytes_read < 0) {
     // Failed to read for some reason. Try again later if there's just no data;
     // otherwise throw an exception to the awaiting coroutine.
@@ -161,7 +247,9 @@ void Base::ReadAwaiter::await_resume() {
 
 void Base::ReadAwaiter::on_read_ready(evutil_socket_t, short, void* ctx) {
   ReadAwaiter* aw = reinterpret_cast<ReadAwaiter*>(ctx);
+
   ssize_t bytes_read = ::read(aw->fd, aw->data, aw->size);
+
   if (bytes_read < 0) {
     // Failed to read for some reason. Try again later if there's just no data;
     // otherwise throw an exception to the awaiting coroutine.

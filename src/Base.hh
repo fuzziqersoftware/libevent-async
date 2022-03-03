@@ -41,9 +41,39 @@ public:
 
   void call_soon(std::function<void(evutil_socket_t, short)> cb);
 
+  // These awaiters should not be used directly; instead, you should use the
+  // functions below (base.read, base.write, etc.).
+
+  struct RecvFromResult {
+    std::string data;
+    size_t data_available; // may be longer than data if max_size was too small
+    struct sockaddr_storage addr;
+  };
+
+  class RecvFromAwaiter {
+  public:
+    RecvFromAwaiter(Base& base, evutil_socket_t fd, size_t max_size);
+    bool await_ready();
+    void await_suspend(std::experimental::coroutine_handle<> coro);
+    RecvFromResult&& await_resume();
+  protected:
+    static void on_read_ready(evutil_socket_t fd, short what, void* ctx);
+    Base& base;
+    Event event;
+    evutil_socket_t fd;
+    size_t max_size;
+    RecvFromResult res;
+    bool err;
+    std::experimental::coroutine_handle<> coro;
+  };
+
   class ReadAwaiter {
   public:
-    ReadAwaiter(Base& base, evutil_socket_t fd, void* data, size_t size);
+    ReadAwaiter(
+        Base& base,
+        evutil_socket_t fd,
+        void* data,
+        size_t size);
     bool await_ready();
     void await_suspend(std::experimental::coroutine_handle<> coro);
     void await_resume();
@@ -106,6 +136,10 @@ public:
 
   WriteAwaiter write(evutil_socket_t fd, const void* data, size_t size);
   WriteAwaiter write(evutil_socket_t fd, const std::string& data);
+
+  RecvFromAwaiter recvfrom(evutil_socket_t fd, size_t max_size = 1500);
+
+  // Note: sendto() essentially never blocks so there is no async version of it
 
   Task<int> connect(const std::string& addr, int port);
   AcceptAwaiter accept(int listen_fd, struct sockaddr_storage* addr = nullptr);
