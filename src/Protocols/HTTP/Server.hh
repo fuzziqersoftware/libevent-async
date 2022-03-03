@@ -104,6 +104,9 @@ protected:
     WebsocketClient& operator=(WebsocketClient&&);
     ~WebsocketClient();
 
+    void close();
+    bool is_closed() const;
+
     struct WebsocketMessage {
       uint8_t opcode;
       std::string data;

@@ -266,13 +266,23 @@ Server::WebsocketClient& Server::WebsocketClient::operator=(
 }
 
 Server::WebsocketClient::~WebsocketClient() {
+  this->close();
+}
+
+void Server::WebsocketClient::close() {
   // Assume the evhttp_connection (if present) owns the fd, so we only need to
   // free the conn or close the fd here (but not both).
   if (this->conn) {
     evhttp_connection_free(this->conn);
   } else if (this->fd >= 0) {
-    close(this->fd);
+    ::close(this->fd);
   }
+  this->conn = nullptr;
+  this->fd = -1;
+}
+
+bool Server::WebsocketClient::is_closed() const {
+  return (this->conn == nullptr) && (this->fd < 0);
 }
 
 Task<shared_ptr<Server::WebsocketClient>> Server::enable_websockets(
