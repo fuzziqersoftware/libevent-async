@@ -152,7 +152,7 @@ void Buffer::drain_all() {
   this->drain(this->get_length());
 }
 
-size_t Buffer::remove(void* data, size_t size) {
+size_t Buffer::remove_atmost(void* data, size_t size) {
   int ret = evbuffer_remove(this->buf, data, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_remove");
@@ -160,14 +160,14 @@ size_t Buffer::remove(void* data, size_t size) {
   return ret;
 }
 
-string Buffer::remove(size_t size) {
+string Buffer::remove_atmost(size_t size) {
   // TODO: eliminate this unnecessary initialization
   string data(size, '\0');
-  data.resize(this->remove(const_cast<char*>(data.data()), size));
+  data.resize(this->remove_atmost(const_cast<char*>(data.data()), size));
   return data;
 }
 
-void Buffer::remove_exactly(void* data, size_t size) {
+void Buffer::remove(void* data, size_t size) {
   int ret = evbuffer_remove(this->buf, data, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_remove");
@@ -176,14 +176,14 @@ void Buffer::remove_exactly(void* data, size_t size) {
   }
 }
 
-string Buffer::remove_exactly(size_t size) {
+string Buffer::remove(size_t size) {
   // TODO: eliminate this unnecessary initialization
   string data(size, '\0');
-  this->remove_exactly(const_cast<char*>(data.data()), size);
+  this->remove(const_cast<char*>(data.data()), size);
   return data;
 }
 
-size_t Buffer::copyout(void* data, size_t size) {
+size_t Buffer::copyout_atmost(void* data, size_t size) {
   ssize_t ret = evbuffer_copyout(this->buf, data, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_copyout");
@@ -191,14 +191,14 @@ size_t Buffer::copyout(void* data, size_t size) {
   return ret;
 }
 
-string Buffer::copyout(size_t size) {
+string Buffer::copyout_atmost(size_t size) {
   // TODO: eliminate this unnecessary initialization
   string data(size, '\0');
-  data.resize(this->copyout(const_cast<char*>(data.data()), size));
+  data.resize(this->copyout_atmost(const_cast<char*>(data.data()), size));
   return data;
 }
 
-void Buffer::copyout_exactly(void* data, size_t size) {
+void Buffer::copyout(void* data, size_t size) {
   int ret = evbuffer_copyout(this->buf, data, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_copyout");
@@ -207,14 +207,14 @@ void Buffer::copyout_exactly(void* data, size_t size) {
   }
 }
 
-string Buffer::copyout_exactly(size_t size) {
+string Buffer::copyout(size_t size) {
   // TODO: eliminate this unnecessary initialization
   string data(size, '\0');
-  this->copyout_exactly(const_cast<char*>(data.data()), size);
+  this->copyout(const_cast<char*>(data.data()), size);
   return data;
 }
 
-size_t Buffer::copyout_from(const struct evbuffer_ptr* pos, void* data, size_t size) {
+size_t Buffer::copyout_from_atmost(const struct evbuffer_ptr* pos, void* data, size_t size) {
   ssize_t ret = evbuffer_copyout_from(this->buf, pos, data, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_copyout_from");
@@ -222,14 +222,14 @@ size_t Buffer::copyout_from(const struct evbuffer_ptr* pos, void* data, size_t s
   return ret;
 }
 
-string Buffer::copyout_from(const struct evbuffer_ptr* pos, size_t size) {
+string Buffer::copyout_from_atmost(const struct evbuffer_ptr* pos, size_t size) {
   // TODO: eliminate this unnecessary initialization
   string data(size, '\0');
-  data.resize(this->copyout_from(pos, const_cast<char*>(data.data()), size));
+  data.resize(this->copyout_from_atmost(pos, const_cast<char*>(data.data()), size));
   return data;
 }
 
-void Buffer::copyout_from_exactly(const struct evbuffer_ptr* pos, void* data, size_t size) {
+void Buffer::copyout_from(const struct evbuffer_ptr* pos, void* data, size_t size) {
   ssize_t ret = evbuffer_copyout_from(this->buf, pos, data, size);
   if (ret < 0) {
     throw runtime_error("evbuffer_copyout_from");
@@ -238,10 +238,10 @@ void Buffer::copyout_from_exactly(const struct evbuffer_ptr* pos, void* data, si
   }
 }
 
-string Buffer::copyout_from_exactly(const struct evbuffer_ptr* pos, size_t size) {
+string Buffer::copyout_from(const struct evbuffer_ptr* pos, size_t size) {
   // TODO: eliminate this unnecessary initialization
   string data(size, '\0');
-  this->copyout_from_exactly(pos, const_cast<char*>(data.data()), size);
+  this->copyout_from(pos, const_cast<char*>(data.data()), size);
   return data;
 }
 

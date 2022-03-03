@@ -34,19 +34,18 @@ Task<void> ProtocolBuffer::write_command(int fd, uint8_t seq) {
 
 uint32_t ProtocolBuffer::remove_u24() {
   uint32_t v = 0;
-  this->remove_exactly(&v, 3);
+  this->remove(&v, 3);
   return v;
 }
 
 uint64_t ProtocolBuffer::remove_u48() {
   uint64_t v = 0;
-  this->remove_exactly(&v, 6);
+  this->remove(&v, 6);
   return v;
 }
 
 uint64_t ProtocolBuffer::remove_varint() {
-  uint8_t v = 0;
-  this->remove_exactly(&v, 1);
+  uint8_t v = this->remove_u8();
   if (v < 0xFB) {
     return v;
   } else if (v == 0xFB) {

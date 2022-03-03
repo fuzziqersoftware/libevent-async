@@ -52,31 +52,31 @@ struct Buffer {
   void drain(size_t size);
   void drain_all();
 
-  size_t remove(void* data, size_t size);
+  size_t remove_atmost(void* data, size_t size);
+  std::string remove_atmost(size_t size);
+  void remove(void* data, size_t size);
   std::string remove(size_t size);
-  void remove_exactly(void* data, size_t size);
-  std::string remove_exactly(size_t size);
 
-  size_t copyout(void* data, size_t size);
+  size_t copyout_atmost(void* data, size_t size);
+  std::string copyout_atmost(size_t size);
+  void copyout(void* data, size_t size);
   std::string copyout(size_t size);
-  void copyout_exactly(void* data, size_t size);
-  std::string copyout_exactly(size_t size);
-  size_t copyout_from(const struct evbuffer_ptr* pos, void* data, size_t size);
+  size_t copyout_from_atmost(const struct evbuffer_ptr* pos, void* data, size_t size);
+  std::string copyout_from_atmost(const struct evbuffer_ptr* pos, size_t size);
+  void copyout_from(const struct evbuffer_ptr* pos, void* data, size_t size);
   std::string copyout_from(const struct evbuffer_ptr* pos, size_t size);
-  void copyout_from_exactly(const struct evbuffer_ptr* pos, void* data, size_t size);
-  std::string copyout_from_exactly(const struct evbuffer_ptr* pos, size_t size);
 
   template <typename T> void add(const T& t) {
     this->add(&t, sizeof(T));
   }
   template <typename T> T remove() {
     T ret;
-    this->remove_exactly(&ret, sizeof(T));
+    this->remove(&ret, sizeof(T));
     return ret;
   }
   template <typename T> T copyout() {
     T ret;
-    this->copyout_exactly(&ret, sizeof(T));
+    this->copyout(&ret, sizeof(T));
     return ret;
   }
 
