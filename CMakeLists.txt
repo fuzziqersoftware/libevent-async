@@ -36,7 +36,7 @@ set (LIBEVENT_LIBRARIES
         ${LIBEVENT_THREAD}
         ${LIBEVENT_SSL})
 
-add_library(event-async src/Base.cc src/Buffer.cc src/COnfig.cc src/DNSBase.cc src/Event.cc src/Task.cc)
+add_library(event-async src/Base.cc src/Buffer.cc src/Config.cc src/DNSBase.cc src/Event.cc src/Task.cc)
 target_include_directories(event-async PUBLIC ${LIBEVENT_INCLUDE_DIR} ${OPENSSL_INCLUDE_DIR})
 target_link_libraries(event-async phosg ${LIBEVENT_LIBRARIES} ${OPENSSL_LIBRARIES})
 
