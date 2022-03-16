@@ -23,11 +23,11 @@ public:
   // Warning: these functions do not consider the endianness of the system; it
   // appears the MySQL protocol uses little-endian integers, so these will only
   // work on little-endian systems.
-  uint32_t remove_u24();
-  uint64_t remove_u48();
+  uint32_t remove_u24l();
+  uint64_t remove_u48l();
   uint64_t remove_varint();
-  void add_u24(uint32_t v);
-  void add_u48(uint64_t v);
+  void add_u24l(uint32_t v);
+  void add_u48l(uint64_t v);
   void add_varint(uint64_t v);
 
   // String types

@@ -78,13 +78,13 @@ uint32_t BinlogProcessor::read_datetime_fractional_part(
     case 2:
       return r.get_u8() * 10000;
     case 3:
-      return r.get_u16r() * 100;
+      return r.get_u16b() * 100;
     case 4:
-      return r.get_u16r() * 100;
+      return r.get_u16b() * 100;
     case 5:
-      return r.get_u24r();
+      return r.get_u24b();
     case 6:
-      return r.get_u24r();
+      return r.get_u24b();
     default:
       throw runtime_error("invalid time-like precision specifier");
   }
@@ -99,17 +99,17 @@ Value BinlogProcessor::read_cell_data(
     case ColumnType::T_TINYINT:
       return static_cast<uint64_t>(r.get_u8());
     case ColumnType::T_SMALLINT:
-      return static_cast<uint64_t>(r.get_u16());
+      return static_cast<uint64_t>(r.get_u16l());
     case ColumnType::T_MEDIUMINT:
-      return static_cast<uint64_t>(r.get_u24());
+      return static_cast<uint64_t>(r.get_u24l());
     case ColumnType::T_INT:
-      return static_cast<uint64_t>(r.get_u32());
+      return static_cast<uint64_t>(r.get_u32l());
     case ColumnType::T_BIGINT:
-      return r.get_u64();
+      return r.get_u64l();
     case ColumnType::T_FLOAT:
-      return r.get_f32();
+      return r.get_f32l();
     case ColumnType::T_DOUBLE:
-      return r.get_f64();
+      return r.get_f64l();
 
     case ColumnType::T_TINYBLOB:
     case ColumnType::T_MEDIUMBLOB:
@@ -126,13 +126,13 @@ Value BinlogProcessor::read_cell_data(
           size = r.get_u8();
           break;
         case 2:
-          size = r.get_u16();
+          size = r.get_u16l();
           break;
         case 3:
-          size = r.get_u24();
+          size = r.get_u24l();
           break;
         case 4:
-          size = r.get_u32();
+          size = r.get_u32l();
           break;
         default:
           throw runtime_error("invalid blob-type meta-length");
@@ -158,7 +158,7 @@ Value BinlogProcessor::read_cell_data(
             (((static_cast<uint16_t>(ci.type_meta[0]) << 4) & 0x300) ^ 0x300) +
             static_cast<uint8_t>(ci.type_meta[1]);
         if (max_display_width > 255) {
-          return r.read(r.get_u16());
+          return r.read(r.get_u16l());
         } else {
           return r.read(r.get_u8());
         }
@@ -170,17 +170,17 @@ Value BinlogProcessor::read_cell_data(
         throw runtime_error("invalid type options");
       }
       if (*reinterpret_cast<const uint16_t*>(ci.type_meta.data()) > 255) {
-        return r.read(r.get_u16());
+        return r.read(r.get_u16l());
       } else {
         return r.read(r.get_u8());
       }
     }
 
     case ColumnType::T_TIMESTAMP:
-      return static_cast<uint64_t>(r.get_u32()) * 1000000;
+      return static_cast<uint64_t>(r.get_u32l()) * 1000000;
 
     case ColumnType::T_TIMESTAMP2: {
-      uint64_t ret = static_cast<uint64_t>(r.get_u32());
+      uint64_t ret = static_cast<uint64_t>(r.get_u32l());
       if (ci.type_meta.size() != 1) {
         throw logic_error("invalid type options");
       }
@@ -198,7 +198,7 @@ Value BinlogProcessor::read_cell_data(
         throw logic_error("invalid type options");
       }
 
-      uint64_t z = r.get_u32r();
+      uint64_t z = r.get_u32b();
       z = (z << 8) | r.get_u8();
 
       // T_DATETIME2 values are 40-bit values laid out like this:
@@ -230,7 +230,7 @@ Value BinlogProcessor::read_cell_data(
       // don't have to worry about the +1 overflowing into the M field, so we
       // just do it before splitting out the fields.
 
-      uint32_t z = r.get_u24r();
+      uint32_t z = r.get_u24b();
       TimeValue ret;
       ret.is_negative = !(z & 0x800000);
       if (ret.is_negative) {
@@ -350,8 +350,8 @@ BinlogTableMapEvent BinlogProcessor::parse_table_map_event(const string& data) {
   if (ev.header.type != BinlogEventType::TABLE_MAP_EVENT) {
     throw logic_error("event is not a table map event");
   }
-  ev.table_id = r.get_u48();
-  ev.flags = r.get_u16(); // flags
+  ev.table_id = r.get_u48l();
+  ev.flags = r.get_u16l(); // flags
   ti->database_name = r.read(r.get_u8());
   r.skip(1); // unused
   ti->table_name = r.read(r.get_u8());
@@ -422,15 +422,15 @@ BinlogRowsEvent BinlogProcessor::parse_rows_event(const string& data) {
     throw logic_error("event is not a rows event");
   }
 
-  ev.table_id = r.get_u48();
+  ev.table_id = r.get_u48l();
   if (ev.table_id == 0x000000FFFFFF) {
     // TODO: implement the correct behavior here
     throw logic_error("table map free during row events not supported");
   }
   ev.ti = this->table_map.at(ev.table_id);
-  ev.flags = r.get_u16(); // flags
+  ev.flags = r.get_u16l(); // flags
   if (is_v2) {
-    ev.extra_data = r.read(r.get_u16() - 2);
+    ev.extra_data = r.read(r.get_u16l() - 2);
   }
   uint64_t num_columns = r.get_varint();
   if (num_columns != ev.ti->columns.size()) {
@@ -481,11 +481,11 @@ BinlogQueryEvent BinlogProcessor::parse_query_event(const string& data) {
   if (ev.header.type != BinlogEventType::QUERY_EVENT) {
     throw logic_error("event is not a query event");
   }
-  ev.conn_id = r.get_u32();
-  ev.exec_time_secs = r.get_u32();
+  ev.conn_id = r.get_u32l();
+  ev.exec_time_secs = r.get_u32l();
   uint8_t database_name_length = r.get_u8();
-  ev.error_code = r.get_u16();
-  ev.status_vars = r.read(r.get_u16());
+  ev.error_code = r.get_u16l();
+  ev.status_vars = r.read(r.get_u16l());
   ev.database_name = r.read(database_name_length);
   r.skip(1); // unused
   ev.query = r.get_string_eof();
@@ -501,7 +501,7 @@ BinlogRotateEvent BinlogProcessor::parse_rotate_event(const string& data) {
   if (ev.header.type != BinlogEventType::ROTATE_EVENT) {
     throw logic_error("event is not a rotate event");
   }
-  ev.next_position = r.get_u64();
+  ev.next_position = r.get_u64l();
   ev.next_filename = r.get_string_eof();
 
   this->filename = ev.next_filename;
@@ -516,7 +516,7 @@ BinlogXidEvent BinlogProcessor::parse_xid_event(const string& data) {
   if (ev.header.type != BinlogEventType::XID_EVENT) {
     throw logic_error("event is not an xid event");
   }
-  ev.xid = r.get_u64();
+  ev.xid = r.get_u64l();
 
   this->position = ev.header.end_position;
   return ev;
@@ -534,7 +534,7 @@ BinlogFormatDescriptionEvent BinlogProcessor::parse_format_description_event(
     0x00, 0x00, 0x08, 0x08, 0x08, 0x02, 0x00, 0x00, 0x00, 0x0A,
     0x0A, 0x0A, 0x2A, 0x2A, 0x00, 0x12, 0x34, 0x00, 0x0A, 0x28,
   };
-  ev.version = r.get_u16();
+  ev.version = r.get_u16l();
   if (ev.version != 4) {
     throw runtime_error("binlog version is not 4");
   }
@@ -545,7 +545,7 @@ BinlogFormatDescriptionEvent BinlogProcessor::parse_format_description_event(
     ev.server_version.resize(zero_pos);
   }
 
-  ev.timestamp = r.get_u32();
+  ev.timestamp = r.get_u32l();
   ev.header_length = r.get_u8();
   if (ev.header_length != 0x13) {
     throw runtime_error("incorrect header length for FORMAT_DESCRIPTION_EVENT");

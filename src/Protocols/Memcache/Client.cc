@@ -104,7 +104,7 @@ Task<Client::GetResult> Client::get(
   if (header.extras_size != 4) {
     throw runtime_error("server responded to GET without flags");
   }
-  uint32_t flags = bswap32(buf.remove_u32());
+  uint32_t flags = buf.remove_u32b();
   string data = buf.remove(header.body_size - header.extras_size);
   co_return {
       .value = move(data),
@@ -258,7 +258,7 @@ Task<uint64_t> Client::increment(
   if (header.body_size != 8) {
     throw runtime_error("incr/decr command returned response data after header");
   }
-  co_return buf.remove_u64r();
+  co_return buf.remove_u64b();
 }
 
 Task<void> Client::append(

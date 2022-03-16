@@ -90,13 +90,13 @@ Task<void> Client::initial_handshake() {
     throw runtime_error("unrecognized protocol version");
   }
   this->server_version = buf.remove_string0();
-  this->connection_id = buf.remove_u32();
+  this->connection_id = buf.remove_u32l();
   string auth_challenge_data = buf.remove(8);
   buf.remove_u8(); // unused
-  this->server_cap_flags = buf.remove_u16();
+  this->server_cap_flags = buf.remove_u16l();
   this->charset = buf.remove_u8();
-  this->status_flags = buf.remove_u16();
-  this->server_cap_flags |= static_cast<uint32_t>(buf.remove_u16()) << 16;
+  this->status_flags = buf.remove_u16l();
+  this->server_cap_flags |= static_cast<uint32_t>(buf.remove_u16l()) << 16;
   uint8_t auth_plugin_data_length = buf.remove_u8();
   buf.drain(10); // unused
   size_t remaining_auth_data_length = auth_plugin_data_length - 8;
@@ -124,8 +124,8 @@ Task<void> Client::initial_handshake() {
   // SecureConnection, MultiStatements, MultiResults, PluginAuth,
   // PluginAuthLenencClientData, DeprecateEOF
   static const uint32_t client_cap_flags = 0x012BA201;
-  buf.add_u32(client_cap_flags);
-  buf.add_u32(0xFFFFFFFF); // max_allowed_packet
+  buf.add_u32l(client_cap_flags);
+  buf.add_u32l(0xFFFFFFFF); // max_allowed_packet
   buf.add_u8(0xFF); // charset
   buf.add_zeroes(23); // unused
   buf.add_string0(this->username);
@@ -170,7 +170,7 @@ Task<void> Client::initial_handshake() {
       }
 
     } else if (response_command == 0xFF) { // ERR
-      uint16_t error_code = buf.remove_u16();
+      uint16_t error_code = buf.remove_u16l();
       buf.drain(1); // sqlstate marker ('#')
       string sqlstate = buf.remove(5);
       string message = buf.remove_string_eof();
@@ -279,8 +279,8 @@ Task<vector<ResultSet>> Client::query_multi(const string& sql, bool rows_as_dict
       buf.remove_u8();
       res.affected_rows = buf.remove_varint();
       res.insert_id = buf.remove_varint();
-      res.status_flags = buf.remove_u16();
-      res.warning_count = buf.remove_u16();
+      res.status_flags = buf.remove_u16l();
+      res.warning_count = buf.remove_u16l();
       ret.emplace_back(move(res));
       if (!(res.status_flags & StatusFlag::MoreResultsExist)) {
         co_return move(ret);
@@ -316,12 +316,12 @@ Task<vector<ResultSet>> Client::query_multi(const string& sql, bool rows_as_dict
       if (buf.remove_varint() != 0x0C) {
         throw runtime_error("column metadata has incorrect fixed-length header");
       }
-      def.charset = buf.remove_u16();
-      def.max_value_length = buf.remove_u32();
+      def.charset = buf.remove_u16l();
+      def.max_value_length = buf.remove_u32l();
       def.type = static_cast<ColumnType>(buf.remove_u8());
-      def.flags = buf.remove_u16();
+      def.flags = buf.remove_u16l();
       def.decimals = buf.remove_u8();
-      buf.remove_u16(); // unused
+      buf.remove_u16l(); // unused
     }
 
     // After the column definitions, each row is sent as an individual command.
@@ -332,8 +332,8 @@ Task<vector<ResultSet>> Client::query_multi(const string& sql, bool rows_as_dict
         buf.remove_u8();
         res.affected_rows = 0;
         res.insert_id = 0;
-        res.warning_count = buf.remove_u16();
-        res.status_flags = buf.remove_u16();
+        res.warning_count = buf.remove_u16l();
+        res.status_flags = buf.remove_u16l();
         ret.emplace_back(move(res));
         if (!(res.status_flags & StatusFlag::MoreResultsExist)) {
           co_return move(ret);
@@ -388,9 +388,9 @@ Task<void> Client::read_binlogs(
 
   ProtocolBuffer buf(this->base);
   buf.add_u8(Command::BinlogDump);
-  buf.add_u32(position);
-  buf.add_u16(block ? 0x0000 : 0x0001);
-  buf.add_u32(server_id);
+  buf.add_u32l(position);
+  buf.add_u16l(block ? 0x0000 : 0x0001);
+  buf.add_u32l(server_id);
   buf.add(filename);
   co_await this->write_command(buf);
 
@@ -437,7 +437,7 @@ void Client::assert_conn_open() {
 }
 
 void Client::parse_error_body(ProtocolBuffer& buf) {
-  uint16_t error_code = buf.remove_u16();
+  uint16_t error_code = buf.remove_u16l();
   string sqlstate = buf.remove(6); // '#' + 5-char sqlstate
   string message = buf.remove_string_eof();
   throw runtime_error(string_printf("(%hu; %s) %s",

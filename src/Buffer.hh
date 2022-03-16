@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <experimental/coroutine>
+#include <phosg/Encoding.hh>
 
 #include "Base.hh"
 #include "Event.hh"
@@ -80,48 +81,50 @@ struct Buffer {
     return ret;
   }
 
-  void add_u8(uint8_t v);
-  void add_s8(int8_t v);
-  void add_u16(uint16_t v);
-  void add_s16(int16_t v);
-  void add_u16r(uint16_t v);
-  void add_s16r(int16_t v);
-  void add_u32(uint32_t v);
-  void add_s32(int32_t v);
-  void add_u32r(uint32_t v);
-  void add_s32r(int32_t v);
-  void add_u64(uint64_t v);
-  void add_s64(int64_t v);
-  void add_u64r(uint64_t v);
-  void add_s64r(int64_t v);
-  uint8_t remove_u8();
-  int8_t remove_s8();
-  uint16_t remove_u16();
-  int16_t remove_s16();
-  uint16_t remove_u16r();
-  int16_t remove_s16r();
-  uint32_t remove_u32();
-  int32_t remove_s32();
-  uint32_t remove_u32r();
-  int32_t remove_s32r();
-  uint64_t remove_u64();
-  int64_t remove_s64();
-  uint64_t remove_u64r();
-  int64_t remove_s64r();
-  uint8_t copyout_u8();
-  int8_t copyout_s8();
-  uint16_t copyout_u16();
-  int16_t copyout_s16();
-  uint16_t copyout_u16r();
-  int16_t copyout_s16r();
-  uint32_t copyout_u32();
-  int32_t copyout_s32();
-  uint32_t copyout_u32r();
-  int32_t copyout_s32r();
-  uint64_t copyout_u64();
-  int64_t copyout_s64();
-  uint64_t copyout_u64r();
-  int64_t copyout_s64r();
+  inline void add_u8(uint8_t v)    { this->add<uint8_t>(v); }
+  inline void add_s8(int8_t v)     { this->add<int8_t>(v); }
+  inline void add_u16b(uint16_t v) { this->add<be_uint16_t>(v); }
+  inline void add_s16b(int16_t v)  { this->add<be_int16_t>(v); }
+  inline void add_u16l(uint16_t v) { this->add<le_uint16_t>(v); }
+  inline void add_s16l(int16_t v)  { this->add<le_int16_t>(v); }
+  inline void add_u32b(uint32_t v) { this->add<be_uint32_t>(v); }
+  inline void add_s32b(int32_t v)  { this->add<be_int32_t>(v); }
+  inline void add_u32l(uint32_t v) { this->add<le_uint32_t>(v); }
+  inline void add_s32l(int32_t v)  { this->add<le_int32_t>(v); }
+  inline void add_u64b(uint64_t v) { this->add<be_uint64_t>(v); }
+  inline void add_s64b(int64_t v)  { this->add<be_int64_t>(v); }
+  inline void add_u64l(uint64_t v) { this->add<le_uint64_t>(v); }
+  inline void add_s64l(int64_t v)  { this->add<le_int64_t>(v); }
+
+  inline uint8_t remove_u8()    { return this->remove<uint8_t>(); }
+  inline int8_t remove_s8()     { return this->remove<int8_t>(); }
+  inline uint16_t remove_u16b() { return this->remove<be_uint16_t>(); }
+  inline int16_t remove_s16b()  { return this->remove<be_int16_t>(); }
+  inline uint16_t remove_u16l() { return this->remove<le_uint16_t>(); }
+  inline int16_t remove_s16l()  { return this->remove<le_int16_t>(); }
+  inline uint32_t remove_u32b() { return this->remove<be_uint32_t>(); }
+  inline int32_t remove_s32b()  { return this->remove<be_int32_t>(); }
+  inline uint32_t remove_u32l() { return this->remove<le_uint32_t>(); }
+  inline int32_t remove_s32l()  { return this->remove<le_int32_t>(); }
+  inline uint64_t remove_u64b() { return this->remove<be_uint64_t>(); }
+  inline int64_t remove_s64b()  { return this->remove<be_int64_t>(); }
+  inline uint64_t remove_u64l() { return this->remove<le_uint64_t>(); }
+  inline int64_t remove_s64l()  { return this->remove<le_int64_t>(); }
+
+  inline uint8_t copyout_u8()    { return this->copyout<uint8_t>(); }
+  inline int8_t copyout_s8()     { return this->copyout<int8_t>(); }
+  inline uint16_t copyout_u16b() { return this->copyout<be_uint16_t>(); }
+  inline int16_t copyout_s16b()  { return this->copyout<be_int16_t>(); }
+  inline uint16_t copyout_u16l() { return this->copyout<le_uint16_t>(); }
+  inline int16_t copyout_s16l()  { return this->copyout<le_int16_t>(); }
+  inline uint32_t copyout_u32b() { return this->copyout<be_uint32_t>(); }
+  inline int32_t copyout_s32b()  { return this->copyout<be_int32_t>(); }
+  inline uint32_t copyout_u32l() { return this->copyout<le_uint32_t>(); }
+  inline int32_t copyout_s32l()  { return this->copyout<le_int32_t>(); }
+  inline uint64_t copyout_u64b() { return this->copyout<be_uint64_t>(); }
+  inline int64_t copyout_s64b()  { return this->copyout<be_int64_t>(); }
+  inline uint64_t copyout_u64l() { return this->copyout<le_uint64_t>(); }
+  inline int64_t copyout_s64l()  { return this->copyout<le_int64_t>(); }
 
   std::string readln(enum evbuffer_eol_style eol_style);
 

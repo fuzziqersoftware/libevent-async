@@ -348,10 +348,10 @@ Server::WebsocketClient::read() {
     size_t payload_size = frame_size & 0x7F;
     if (payload_size == 0x7F) {
       co_await this->input_buf.read_to(this->fd, 8);
-      payload_size = this->input_buf.remove_u64r();
+      payload_size = this->input_buf.remove_u64b();
     } else if (payload_size == 0x7E) {
       co_await this->input_buf.read_to(this->fd, 2);
-      payload_size = this->input_buf.remove_u16r();
+      payload_size = this->input_buf.remove_u16b();
     }
 
     // Read the masking key if needed
@@ -417,10 +417,10 @@ Task<void> Server::WebsocketClient::write(Buffer& buf, uint8_t opcode) {
   send_buf.add_u8(0x80 | (opcode & 0x0F));
   if (data_size > 0xFFFF) {
     send_buf.add_u8(0x7F);
-    send_buf.add_u64r(data_size);
+    send_buf.add_u64b(data_size);
   } else if (data_size > 0x7D) {
     send_buf.add_u8(0x7E);
-    send_buf.add_u16r(data_size);
+    send_buf.add_u16b(data_size);
   } else {
     send_buf.add_u8(data_size);
   }
