@@ -2,7 +2,7 @@
 
 #include <event2/event.h>
 
-#include <experimental/coroutine>
+#include <coroutine>
 #include <vector>
 #include <string>
 
@@ -54,7 +54,7 @@ public:
   public:
     RecvFromAwaiter(Base& base, evutil_socket_t fd, size_t max_size);
     bool await_ready();
-    void await_suspend(std::experimental::coroutine_handle<> coro);
+    void await_suspend(std::coroutine_handle<> coro);
     RecvFromResult&& await_resume();
   protected:
     static void on_read_ready(evutil_socket_t fd, short what, void* ctx);
@@ -64,7 +64,7 @@ public:
     size_t max_size;
     RecvFromResult res;
     bool err;
-    std::experimental::coroutine_handle<> coro;
+    std::coroutine_handle<> coro;
   };
 
   class ReadAwaiter {
@@ -75,7 +75,7 @@ public:
         void* data,
         size_t size);
     bool await_ready();
-    void await_suspend(std::experimental::coroutine_handle<> coro);
+    void await_suspend(std::coroutine_handle<> coro);
     void await_resume();
   protected:
     static void on_read_ready(evutil_socket_t fd, short what, void* ctx);
@@ -86,7 +86,7 @@ public:
     size_t size;
     bool err;
     bool eof;
-    std::experimental::coroutine_handle<> coro;
+    std::coroutine_handle<> coro;
   };
 
   class WriteAwaiter {
@@ -97,7 +97,7 @@ public:
         const void* data,
         size_t size);
     bool await_ready();
-    void await_suspend(std::experimental::coroutine_handle<> coro);
+    void await_suspend(std::coroutine_handle<> coro);
     void await_resume();
   protected:
     static void on_write_ready(evutil_socket_t fd, short what, void* ctx);
@@ -107,7 +107,7 @@ public:
     const void* data;
     size_t size;
     bool err;
-    std::experimental::coroutine_handle<> coro;
+    std::coroutine_handle<> coro;
   };
 
   class AcceptAwaiter {
@@ -116,7 +116,7 @@ public:
         Base& base, int listen_fd, struct sockaddr_storage* addr = nullptr);
     int await_resume();
     bool await_ready() const noexcept;
-    void await_suspend(std::experimental::coroutine_handle<> coro);
+    void await_suspend(std::coroutine_handle<> coro);
   private:
     static void on_accept_ready(int fd, short what, void* ctx);
 
@@ -126,7 +126,7 @@ public:
     Event event;
     struct sockaddr_storage* addr;
     bool err;
-    std::experimental::coroutine_handle<> coro;
+    std::coroutine_handle<> coro;
   };
 
   TimeoutAwaiter sleep(uint64_t usecs);
@@ -157,7 +157,7 @@ class DeferredFuture : public Future<ValueT> {
 public:
   explicit DeferredFuture(Base& base) : base(base) { }
   DeferredFuture(Base& base, const ValueT& v) : Future<ValueT>(v), base(base) { }
-  DeferredFuture(Base& base, ValueT&& v) : Future<ValueT>(move(v)), base(base) { }
+  DeferredFuture(Base& base, ValueT&& v) : Future<ValueT>(std::move(v)), base(base) { }
   DeferredFuture(const DeferredFuture&) = delete;
   DeferredFuture(DeferredFuture&&);
   DeferredFuture& operator=(const DeferredFuture&) = delete;
@@ -166,7 +166,7 @@ public:
 
   void resume_awaiters() {
     static auto resume_coro = +[](evutil_socket_t, short, void* addr) {
-      std::experimental::coroutine_handle<>::from_address(addr).resume();
+      std::coroutine_handle<>::from_address(addr).resume();
     };
     while (!this->awaiting_coros.empty()) {
       auto coro = this->awaiting_coros.front();

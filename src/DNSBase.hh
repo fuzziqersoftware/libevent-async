@@ -65,7 +65,7 @@ public:
   public:
     LookupAwaiterBase(DNSBase& dns_base, const void* target, int flags);
     bool await_ready() const noexcept;
-    void await_suspend(std::experimental::coroutine_handle<> coro);
+    void await_suspend(std::coroutine_handle<> coro);
 
   protected:
     virtual void start_request() = 0;
@@ -78,7 +78,7 @@ public:
     bool complete;
     const void* target;
     int flags;
-    std::experimental::coroutine_handle<> coro;
+    std::coroutine_handle<> coro;
   };
 
   class LookupIPv4Awaiter : public LookupAwaiterBase {

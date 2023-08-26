@@ -3,19 +3,18 @@
 #include <stdio.h>
 
 #include <phosg/Encoding.hh>
+#include <phosg/Strings.hh>
 #include <phosg/Time.hh>
 
 using namespace std;
 
-
-
 namespace EventAsync::Memcache {
 
 Client::Client(Base& base, const char* hostname, uint16_t port)
-  : base(base),
-    hostname(hostname),
-    port(port),
-    fd(-1) { }
+    : base(base),
+      hostname(hostname),
+      port(port),
+      fd(-1) {}
 
 Task<void> Client::connect() {
   if (this->fd.is_open()) {
@@ -49,8 +48,6 @@ void Client::assert_conn_open() {
   }
 }
 
-
-
 Task<CommandHeader> Client::read_response_header(Buffer& buf,
     uint16_t expected_error_code1, uint16_t expected_error_code2) {
   co_await buf.read_to(this->fd, sizeof(CommandHeader));
@@ -70,10 +67,8 @@ Task<CommandHeader> Client::read_response_header(Buffer& buf,
       buf.drain(header.body_size); // skip the error message
     }
   }
-  co_return header;
+  co_return std::move(header);
 }
-
-
 
 Task<Client::GetResult> Client::get(
     const void* key, size_t size, uint32_t expiration_secs) {
@@ -107,7 +102,7 @@ Task<Client::GetResult> Client::get(
   uint32_t flags = buf.remove_u32b();
   string data = buf.remove(header.body_size - header.extras_size);
   co_return {
-      .value = move(data),
+      .value = std::move(data),
       .cas = header.cas,
       .flags = flags,
       .key_found = true};
@@ -242,7 +237,7 @@ Task<uint64_t> Client::increment(
     uint64_t initial_value;
     uint32_t expiration_secs;
   } __attribute__((packed)) extras = {
-    bswap64(delta), bswap64(initial_value), bswap32(expiration_secs)};
+      bswap64(delta), bswap64(initial_value), bswap32(expiration_secs)};
 
   Buffer buf(this->base);
   buf.add_reference(&header, sizeof(header));
@@ -368,9 +363,9 @@ Task<unordered_map<string, string>> Client::stats(
     }
     string key = buf.remove(header.key_size);
     string value = buf.remove(header.body_size - header.key_size);
-    ret.emplace(move(key), move(value));
+    ret.emplace(std::move(key), std::move(value));
   }
-  co_return ret;
+  co_return std::move(ret);
 }
 
 Task<void> Client::touch(
@@ -395,4 +390,4 @@ Task<void> Client::touch(
   co_await this->read_response_header(buf);
 }
 
-} // namespace EventAsync::MySQL
+} // namespace EventAsync::Memcache

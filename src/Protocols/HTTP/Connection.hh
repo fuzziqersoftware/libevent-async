@@ -5,15 +5,13 @@
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
-#include "../../Buffer.hh"
 #include "../../Base.hh"
+#include "../../Buffer.hh"
 #include "../../DNSBase.hh"
 #include "Request.hh"
-
-
 
 namespace EventAsync::HTTP {
 
@@ -36,20 +34,21 @@ struct Connection {
   void set_local_address(const char* addr);
   void set_local_port(uint16_t port);
   void set_max_body_size(ev_ssize_t max_body_size);
-  void set_max_headers_size(ev_ssize_t max_headers_size); 
-  void set_retries(int retry_max);  
+  void set_max_headers_size(ev_ssize_t max_headers_size);
+  void set_retries(int retry_max);
   void set_timeout(int timeout_secs);
 
   class Awaiter {
   public:
     Awaiter(Request& req);
     bool await_ready() const noexcept;
-    void await_suspend(std::experimental::coroutine_handle<> coro);
+    void await_suspend(std::coroutine_handle<> coro);
     void await_resume();
     void on_response();
+
   private:
     Request& req;
-    std::experimental::coroutine_handle<> coro;
+    std::coroutine_handle<> coro;
   };
 
   Awaiter send_request(

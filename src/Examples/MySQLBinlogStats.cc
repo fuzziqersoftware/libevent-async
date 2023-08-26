@@ -1,16 +1,14 @@
-#include <unordered_set>
-#include <experimental/coroutine>
+#include <coroutine>
 #include <phosg/Network.hh>
 #include <phosg/Strings.hh>
 #include <phosg/Time.hh>
+#include <unordered_set>
 
-#include "../Protocols/MySQL/Client.hh"
 #include "../Protocols/MySQL/BinlogProcessor.hh"
+#include "../Protocols/MySQL/Client.hh"
 
 using namespace std;
 using namespace EventAsync::MySQL;
-
-
 
 class StatsDClient {
 public:
@@ -18,7 +16,11 @@ public:
       EventAsync::Base& base,
       const string& hostname = "",
       uint16_t port = 8125)
-    : hostname(hostname), port(port), fd(-1), writing_stdout(false), buf(base) {
+      : hostname(hostname),
+        port(port),
+        fd(-1),
+        writing_stdout(false),
+        buf(base) {
     if (this->hostname.empty()) {
       fprintf(stderr, "sending output to stdout\n");
       this->fd = fileno(stdout);
@@ -100,8 +102,6 @@ private:
   EventAsync::Buffer buf;
 };
 
-
-
 struct Options {
   const char* host;
   uint16_t port;
@@ -115,14 +115,14 @@ struct Options {
   unordered_map<string, string> constant_tags;
 
   Options()
-    : host("127.0.0.1"),
-      port(3306),
-      username("root"),
-      password("root"),
-      start_filename(nullptr),
-      start_position(0),
-      stats_host(""),
-      stats_port(8125) { }
+      : host("127.0.0.1"),
+        port(3306),
+        username("root"),
+        password("root"),
+        start_filename(nullptr),
+        start_position(0),
+        stats_host(""),
+        stats_port(8125) {}
 };
 
 EventAsync::DetachedTask generate_binlog_stats(
@@ -301,8 +301,6 @@ EventAsync::DetachedTask generate_binlog_stats(
   }
 }
 
-
-
 int main(int argc, char** argv) {
   if (argc < 2) {
     fprintf(stderr, "\
@@ -351,7 +349,7 @@ Options:\n\
       if (equals_pos != string::npos) {
         opts.constant_tags.emplace(tag.substr(0, equals_pos), tag.substr(equals_pos + 1));
       } else {
-        opts.constant_tags.emplace(move(tag), "");
+        opts.constant_tags.emplace(std::move(tag), "");
       }
     } else {
       throw invalid_argument("unknown option");

@@ -3,12 +3,10 @@
 #include <event2/event.h>
 #include <event2/http.h>
 
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 #include "../../Buffer.hh"
-
-
 
 namespace EventAsync::HTTP {
 

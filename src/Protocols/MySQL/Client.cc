@@ -1,7 +1,7 @@
 #include "Client.hh"
 
-#include <stdio.h>
 #include <event2/buffer.h>
+#include <stdio.h>
 
 #include <phosg/Hash.hh>
 #include <phosg/Random.hh>
@@ -11,8 +11,6 @@
 
 using namespace std;
 
-
-
 namespace EventAsync::MySQL {
 
 Client::Client(
@@ -21,15 +19,15 @@ Client::Client(
     uint16_t port,
     const char* username,
     const char* password)
-  : base(base),
-    hostname(hostname),
-    port(port),
-    username(username),
-    password(password),
-    fd(-1),
-    next_seq(0),
-    binlog_read_state(BinlogReadState::NOT_READING),
-    expected_binlog_seq(0) { }
+    : base(base),
+      hostname(hostname),
+      port(port),
+      username(username),
+      password(password),
+      fd(-1),
+      next_seq(0),
+      binlog_read_state(BinlogReadState::NOT_READING),
+      expected_binlog_seq(0) {}
 
 Task<void> Client::connect() {
   if (this->fd.is_open()) {
@@ -38,8 +36,6 @@ Task<void> Client::connect() {
   this->fd = co_await this->base.connect(this->hostname, this->port);
   co_await this->initial_handshake();
 }
-
-
 
 Task<void> Client::read_command(ProtocolBuffer& buf) {
   uint8_t seq = co_await buf.read_command(this->fd);
@@ -56,8 +52,6 @@ Task<void> Client::write_command(ProtocolBuffer& buf) {
 void Client::reset_seq() {
   this->next_seq = 0;
 }
-
-
 
 string Client::compute_auth_response(
     const string& auth_plugin_name,
@@ -188,7 +182,7 @@ Task<void> Client::quit() {
   this->reset_seq();
 
   ProtocolBuffer buf(this->base);
-  buf.add_u8(Command::Quit);
+  buf.add_u8(Command::QUIT);
   co_await this->write_command(buf);
   this->fd.close();
 }
@@ -231,7 +225,7 @@ static Value parse_value(ColumnType type, string&& value) {
     case ColumnType::T_ENUM:
     case ColumnType::T_SET:
     case ColumnType::T_GEOMETRY:
-      return move(value);
+      return std::move(value);
     default:
       throw runtime_error("invalid value type");
   }
@@ -242,20 +236,18 @@ Task<void> Client::change_db(const string& db_name) {
   this->reset_seq();
 
   ProtocolBuffer buf(this->base);
-  buf.add_u8(Command::InitDB);
+  buf.add_u8(Command::INIT_DB);
   buf.add(db_name);
   co_await this->write_command(buf);
   co_await this->expect_ok();
 }
-
-
 
 Task<ResultSet> Client::query(const string& sql, bool rows_as_dicts) {
   auto ret = co_await this->query_multi(sql, rows_as_dicts);
   if (ret.size() != 1) {
     throw logic_error("query returned multiple result sets; use query_multi instead");
   }
-  co_return move(ret[0]);
+  co_return std::move(ret[0]);
 }
 
 Task<vector<ResultSet>> Client::query_multi(const string& sql, bool rows_as_dicts) {
@@ -263,7 +255,7 @@ Task<vector<ResultSet>> Client::query_multi(const string& sql, bool rows_as_dict
   this->reset_seq();
 
   ProtocolBuffer buf(this->base);
-  buf.add_u8(Command::Query);
+  buf.add_u8(Command::QUERY);
   buf.add(sql);
   co_await this->write_command(buf);
 
@@ -281,9 +273,9 @@ Task<vector<ResultSet>> Client::query_multi(const string& sql, bool rows_as_dict
       res.insert_id = buf.remove_varint();
       res.status_flags = buf.remove_u16l();
       res.warning_count = buf.remove_u16l();
-      ret.emplace_back(move(res));
-      if (!(res.status_flags & StatusFlag::MoreResultsExist)) {
-        co_return move(ret);
+      ret.emplace_back(std::move(res));
+      if (!(res.status_flags & StatusFlag::MORE_RESULTS_EXIST)) {
+        co_return std::move(ret);
       }
       continue;
 
@@ -334,17 +326,16 @@ Task<vector<ResultSet>> Client::query_multi(const string& sql, bool rows_as_dict
         res.insert_id = 0;
         res.warning_count = buf.remove_u16l();
         res.status_flags = buf.remove_u16l();
-        ret.emplace_back(move(res));
-        if (!(res.status_flags & StatusFlag::MoreResultsExist)) {
-          co_return move(ret);
+        ret.emplace_back(std::move(res));
+        if (!(res.status_flags & StatusFlag::MORE_RESULTS_EXIST)) {
+          co_return std::move(ret);
         }
         buf.drain_all(); // ignore extra bytes in EOFs
         break;
       }
 
       if (rows_as_dicts) {
-        auto& row = get<vector<unordered_map<string, Value>>>(res.rows)
-            .emplace_back();
+        auto& row = get<vector<unordered_map<string, Value>>>(res.rows).emplace_back();
         for (const auto& column_def : res.columns) {
           if (buf.copyout_u8() == 0xFB) {
             buf.remove_u8();
@@ -371,8 +362,6 @@ Task<vector<ResultSet>> Client::query_multi(const string& sql, bool rows_as_dict
   }
 }
 
-
-
 Task<void> Client::read_binlogs(
     const string& filename, size_t position, uint32_t server_id, bool block) {
   this->assert_conn_open();
@@ -387,7 +376,7 @@ Task<void> Client::read_binlogs(
   this->reset_seq();
 
   ProtocolBuffer buf(this->base);
-  buf.add_u8(Command::BinlogDump);
+  buf.add_u8(Command::BINLOG_DUMP);
   buf.add_u32l(position);
   buf.add_u16l(block ? 0x0000 : 0x0001);
   buf.add_u32l(server_id);
@@ -413,7 +402,7 @@ Task<string> Client::get_binlog_event() {
     throw out_of_range("end of binlog stream");
   } else if (command == 0) {
     string ret = buf.remove_string_eof();
-  //   It appears the first event is always an artificial ROTATE_EVENT and does
+    //   It appears the first event is always an artificial ROTATE_EVENT and does
     // NOT have a checksum; all subsequent ROTATE_EVENTs (even if artificial) DO
     // have checksums.
     // TODO: Is this a correct description of the actual behavior? Do we need
@@ -422,13 +411,11 @@ Task<string> Client::get_binlog_event() {
       ret.resize(ret.size() - 4);
     }
     this->binlog_read_state = BinlogReadState::READING_EVENT;
-    co_return ret;
+    co_return std::move(ret);
   } else {
     throw runtime_error("binlog event does not begin with OK byte");
   }
 }
-
-
 
 void Client::assert_conn_open() {
   if (!this->fd.is_open()) {

@@ -10,46 +10,44 @@
 
 using namespace std;
 
-
-
 namespace EventAsync::MySQL {
 
 const char* name_for_column_type(uint8_t type) {
   static const vector<const char*> low_types({
-    "T_DECIMAL",
-    "T_TINYINT",
-    "T_SMALLINT",
-    "T_INT",
-    "T_FLOAT",
-    "T_DOUBLE",
-    "T_NULL",
-    "T_TIMESTAMP",
-    "T_BIGINT",
-    "T_MEDIUMINT",
-    "T_DATE",
-    "T_TIME",
-    "T_DATETIME",
-    "T_YEAR",
-    "T_NEWDATE",
-    "T_VARCHAR",
-    "T_BIT",
-    "T_TIMESTAMP2",
-    "T_DATETIME2",
-    "T_TIME2",
+      "T_DECIMAL",
+      "T_TINYINT",
+      "T_SMALLINT",
+      "T_INT",
+      "T_FLOAT",
+      "T_DOUBLE",
+      "T_NULL",
+      "T_TIMESTAMP",
+      "T_BIGINT",
+      "T_MEDIUMINT",
+      "T_DATE",
+      "T_TIME",
+      "T_DATETIME",
+      "T_YEAR",
+      "T_NEWDATE",
+      "T_VARCHAR",
+      "T_BIT",
+      "T_TIMESTAMP2",
+      "T_DATETIME2",
+      "T_TIME2",
   });
   static const vector<const char*> high_types({
-    "T_BOOL",
-    "T_JSON",
-    "T_NEWDECIMAL",
-    "T_ENUM",
-    "T_SET",
-    "T_TINYBLOB",
-    "T_MEDIUMBLOB",
-    "T_LONGBLOB",
-    "T_BLOB",
-    "T_VAR_STRING",
-    "T_STRING",
-    "T_GEOMETRY",
+      "T_BOOL",
+      "T_JSON",
+      "T_NEWDECIMAL",
+      "T_ENUM",
+      "T_SET",
+      "T_TINYBLOB",
+      "T_MEDIUMBLOB",
+      "T_LONGBLOB",
+      "T_BLOB",
+      "T_VAR_STRING",
+      "T_STRING",
+      "T_GEOMETRY",
   });
   try {
     return (type >= 0xF4) ? high_types.at(type - 0xF4) : low_types.at(type);
@@ -59,10 +57,14 @@ const char* name_for_column_type(uint8_t type) {
   }
 }
 
-
-
 DateTimeValue::DateTimeValue(const string& str)
-  : years(0), months(0), days(0), hours(0), minutes(0), seconds(0), usecs(0) {
+    : years(0),
+      months(0),
+      days(0),
+      hours(0),
+      minutes(0),
+      seconds(0),
+      usecs(0) {
   sscanf(str.c_str(), "%hu-%hhu-%hhu %hhu:%hhu:%hhu.%u",
       &this->years, &this->months, &this->days, &this->hours, &this->minutes,
       &this->seconds, &this->usecs);
@@ -80,7 +82,11 @@ string DateTimeValue::str() const {
 }
 
 TimeValue::TimeValue(const string& str)
-  : is_negative(false), hours(0), minutes(0), seconds(0), usecs(0) {
+    : is_negative(false),
+      hours(0),
+      minutes(0),
+      seconds(0),
+      usecs(0) {
 
   this->is_negative = str[0] == '-';
   const char* s = is_negative ? &str[1] : &str[0];
@@ -102,8 +108,6 @@ string TimeValue::str() const {
       this->is_negative ? "-" : "", this->hours, this->minutes, this->seconds,
       this->usecs);
 }
-
-
 
 vector<vector<Value>>& ResultSet::rows_vecs() {
   return get<vector<vector<Value>>>(this->rows);

@@ -6,8 +6,6 @@
 
 using namespace std;
 
-
-
 namespace EventAsync::MySQL {
 
 Task<uint8_t> ProtocolBuffer::read_command(int fd) {
@@ -18,7 +16,7 @@ Task<uint8_t> ProtocolBuffer::read_command(int fd) {
   size_t command_length = this->remove_u24l();
   uint8_t command_seq = this->remove_u8();
   co_await this->read_to(fd, command_length);
-  co_return move(command_seq);
+  co_return std::move(command_seq);
 }
 
 Task<void> ProtocolBuffer::write_command(int fd, uint8_t seq) {
@@ -28,9 +26,6 @@ Task<void> ProtocolBuffer::write_command(int fd, uint8_t seq) {
   send_buf.add_buffer(*this);
   co_await send_buf.write(fd);
 }
-
-
-
 
 uint32_t ProtocolBuffer::remove_u24l() {
   uint32_t v = 0;
@@ -85,8 +80,6 @@ void ProtocolBuffer::add_varint(uint64_t v) {
   }
 }
 
-
-
 string ProtocolBuffer::remove_string0() {
   return this->readln(EVBUFFER_EOL_NUL);
 }
@@ -122,8 +115,6 @@ void ProtocolBuffer::add_zeroes(size_t count) {
     this->add_u8(0);
   }
 }
-
-
 
 uint64_t ProtocolStringReader::get_varint() {
   uint8_t v = this->get_u8();

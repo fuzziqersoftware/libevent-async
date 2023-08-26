@@ -4,7 +4,6 @@
 #include <phosg/Strings.hh>
 
 using namespace std;
-using namespace std::experimental;
 
 
 
@@ -329,11 +328,11 @@ static void dispatch_delete_string(const void*, size_t, void* ctx) {
 }
 
 void Buffer::add(string&& data) {
-  string* s = new string(move(data));
+  string* s = new string(std::move(data));
   int ret = evbuffer_add_reference(this->buf, s->data(), s->size(),
       dispatch_delete_string, s);
   if (ret < 0) {
-    data = move(*s);
+    data = std::move(*s);
     delete s;
     throw runtime_error("evbuffer_add_reference");
   }

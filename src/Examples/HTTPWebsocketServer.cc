@@ -1,19 +1,17 @@
-#include <unordered_set>
-#include <experimental/coroutine>
+#include <coroutine>
 #include <phosg/Encoding.hh>
 #include <phosg/Filesystem.hh>
 #include <phosg/Network.hh>
 #include <phosg/Strings.hh>
+#include <unordered_set>
 
 #include "../Protocols/HTTP/Server.hh"
 
 using namespace std;
 
-
-
 class ExampleHTTPWebsocketServer : public EventAsync::HTTP::Server {
 public:
-  ExampleHTTPWebsocketServer(EventAsync::Base& base) : Server(base, nullptr) { }
+  ExampleHTTPWebsocketServer(EventAsync::Base& base) : Server(base, nullptr) {}
 
 protected:
   virtual EventAsync::DetachedTask handle_request(
@@ -35,11 +33,15 @@ protected:
 
       } else {
         string data;
+        bool loaded = false;
         try {
           data = load_file(filename);
+          loaded = true;
         } catch (const exception& e) {
           this->send_response(
               req, 500, "text/plain", "Could not read file: %s", e.what());
+        }
+        if (!loaded) {
           co_return;
         }
 
@@ -47,7 +49,7 @@ protected:
         if (ends_with(filename, ".js")) {
           content_type = "text/javascript";
         }
-        this->send_response(req, 200, content_type, move(data));
+        this->send_response(req, 200, content_type, std::move(data));
       }
 
     } else if (starts_with(path, "/stream")) {

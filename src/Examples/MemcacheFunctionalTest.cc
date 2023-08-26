@@ -5,8 +5,6 @@
 
 using namespace std;
 
-
-
 EventAsync::DetachedTask main_async(EventAsync::Base& base, uint16_t port) {
   EventAsync::Memcache::Client client(base, "localhost", port);
 

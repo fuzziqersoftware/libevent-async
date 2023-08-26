@@ -2,64 +2,60 @@
 
 #include <stdint.h>
 
+#include <memory>
 #include <string>
 #include <vector>
-#include <memory>
 
 #include "ProtocolBuffer.hh"
 #include "Types.hh"
 
-
-
 namespace EventAsync::MySQL {
 
 enum BinlogEventType {
-  UNKNOWN_EVENT             = 0,
-  START_EVENT_V3            = 1,
-  QUERY_EVENT               = 2,
-  STOP_EVENT                = 3,
-  ROTATE_EVENT              = 4,
-  INTVAR_EVENT              = 5,
-  LOAD_EVENT                = 6,
-  SLAVE_EVENT               = 7,
-  CREATE_FILE_EVENT         = 8,
-  APPEND_BLOCK_EVENT        = 9,
-  EXEC_LOAD_EVENT           = 10,
-  DELETE_FILE_EVENT         = 11,
-  NEW_LOAD_EVENT            = 12,
-  RAND_EVENT                = 13,
-  USER_VAR_EVENT            = 14,
-  FORMAT_DESCRIPTION_EVENT  = 15,
-  XID_EVENT                 = 16,
-  BEGIN_LOAD_QUERY_EVENT    = 17,
-  EXECUTE_LOAD_QUERY_EVENT  = 18,
-  TABLE_MAP_EVENT           = 19,
-  WRITE_ROWS_EVENTv0        = 20,
-  UPDATE_ROWS_EVENTv0       = 21,
-  DELETE_ROWS_EVENTv0       = 22,
-  WRITE_ROWS_EVENTv1        = 23,
-  UPDATE_ROWS_EVENTv1       = 24,
-  DELETE_ROWS_EVENTv1       = 25,
-  INCIDENT_EVENT            = 26,
-  HEARTBEAT_EVENT           = 27,
-  IGNORABLE_EVENT           = 28,
-  ROWS_QUERY_EVENT          = 29,
-  WRITE_ROWS_EVENTv2        = 30,
-  UPDATE_ROWS_EVENTv2       = 31,
-  DELETE_ROWS_EVENTv2       = 32,
-  GTID_EVENT                = 33,
-  ANONYMOUS_GTID_EVENT      = 34,
-  PREVIOUS_GTIDS_EVENT      = 35,
+  UNKNOWN_EVENT = 0,
+  START_EVENT_V3 = 1,
+  QUERY_EVENT = 2,
+  STOP_EVENT = 3,
+  ROTATE_EVENT = 4,
+  INTVAR_EVENT = 5,
+  LOAD_EVENT = 6,
+  SLAVE_EVENT = 7,
+  CREATE_FILE_EVENT = 8,
+  APPEND_BLOCK_EVENT = 9,
+  EXEC_LOAD_EVENT = 10,
+  DELETE_FILE_EVENT = 11,
+  NEW_LOAD_EVENT = 12,
+  RAND_EVENT = 13,
+  USER_VAR_EVENT = 14,
+  FORMAT_DESCRIPTION_EVENT = 15,
+  XID_EVENT = 16,
+  BEGIN_LOAD_QUERY_EVENT = 17,
+  EXECUTE_LOAD_QUERY_EVENT = 18,
+  TABLE_MAP_EVENT = 19,
+  WRITE_ROWS_EVENTv0 = 20,
+  UPDATE_ROWS_EVENTv0 = 21,
+  DELETE_ROWS_EVENTv0 = 22,
+  WRITE_ROWS_EVENTv1 = 23,
+  UPDATE_ROWS_EVENTv1 = 24,
+  DELETE_ROWS_EVENTv1 = 25,
+  INCIDENT_EVENT = 26,
+  HEARTBEAT_EVENT = 27,
+  IGNORABLE_EVENT = 28,
+  ROWS_QUERY_EVENT = 29,
+  WRITE_ROWS_EVENTv2 = 30,
+  UPDATE_ROWS_EVENTv2 = 31,
+  DELETE_ROWS_EVENTv2 = 32,
+  GTID_EVENT = 33,
+  ANONYMOUS_GTID_EVENT = 34,
+  PREVIOUS_GTIDS_EVENT = 35,
   TRANSACTION_CONTEXT_EVENT = 36,
-  VIEW_CHANGE_EVENT         = 37,
-  XA_PREPARE_LOG_EVENT      = 38,
+  VIEW_CHANGE_EVENT = 37,
+  XA_PREPARE_LOG_EVENT = 38,
   PARTIAL_UPDATE_ROWS_EVENT = 39,
   TRANSACTION_PAYLOAD_EVENT = 40,
 };
 
 const char* name_for_binlog_event_type(uint8_t type);
-
-
 
 struct BinlogTableInfo {
   std::string database_name;

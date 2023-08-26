@@ -3,7 +3,7 @@
 #include <event2/event.h>
 
 #include <memory>
-#include <experimental/coroutine>
+#include <coroutine>
 
 
 
@@ -68,11 +68,11 @@ class EventAwaiter {
 public:
   EventAwaiter(Base& base, evutil_socket_t fd, short what);
   bool await_ready() const;
-  void await_suspend(std::experimental::coroutine_handle<> coro);
+  void await_suspend(std::coroutine_handle<> coro);
   void await_resume();
 private:
   Event event;
-  std::experimental::coroutine_handle<> coro;
+  std::coroutine_handle<> coro;
   static void on_trigger(evutil_socket_t fd, short what, void* ctx);
 };
 
@@ -80,11 +80,11 @@ class TimeoutAwaiter {
 public:
   TimeoutAwaiter(Base& base, uint64_t timeout);
   bool await_ready() const;
-  void await_suspend(std::experimental::coroutine_handle<> coro);
+  void await_suspend(std::coroutine_handle<> coro);
   void await_resume();
 private:
   TimeoutEvent event;
-  std::experimental::coroutine_handle<> coro;
+  std::coroutine_handle<> coro;
   static void on_trigger(evutil_socket_t fd, short what, void* ctx);
 };
 

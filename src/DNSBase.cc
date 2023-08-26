@@ -1,7 +1,6 @@
 #include "DNSBase.hh"
 
 using namespace std;
-using namespace std::experimental;
 
 
 
@@ -134,7 +133,7 @@ void DNSBase::LookupAwaiterBase::dispatch_on_request_complete(
 }
 
 DNSBase::LookupResult<in_addr>&& DNSBase::LookupIPv4Awaiter::await_resume() {
-  return move(this->result);
+  return std::move(this->result);
 }
 
 void DNSBase::LookupIPv4Awaiter::start_request() {
@@ -165,7 +164,7 @@ void DNSBase::LookupIPv4Awaiter::on_request_complete(
 }
 
 DNSBase::LookupResult<in6_addr>&& DNSBase::LookupIPv6Awaiter::await_resume() {
-  return move(this->result);
+  return std::move(this->result);
 }
 
 void DNSBase::LookupIPv6Awaiter::start_request() {
@@ -196,7 +195,7 @@ void DNSBase::LookupIPv6Awaiter::on_request_complete(
 }
 
 DNSBase::LookupResult<string>&& DNSBase::LookupReverseAwaiterBase::await_resume() {
-  return move(this->result);
+  return std::move(this->result);
 }
 
 void DNSBase::LookupReverseAwaiterBase::on_request_complete(

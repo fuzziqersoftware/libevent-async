@@ -1,7 +1,7 @@
 #include "BinlogProcessor.hh"
 
-#include <stdio.h>
 #include <event2/buffer.h>
+#include <stdio.h>
 
 #include <phosg/Hash.hh>
 #include <phosg/Random.hh>
@@ -11,53 +11,51 @@
 
 using namespace std;
 
-
-
 namespace EventAsync::MySQL {
 
 const char* name_for_binlog_event_type(uint8_t type) {
   static const vector<const char*> names({
-    "UNKNOWN_EVENT",
-    "START_EVENT_V3",
-    "QUERY_EVENT",
-    "STOP_EVENT",
-    "ROTATE_EVENT",
-    "INTVAR_EVENT",
-    "LOAD_EVENT",
-    "SLAVE_EVENT",
-    "CREATE_FILE_EVENT",
-    "APPEND_BLOCK_EVENT",
-    "EXEC_LOAD_EVENT",
-    "DELETE_FILE_EVENT",
-    "NEW_LOAD_EVENT",
-    "RAND_EVENT",
-    "USER_VAR_EVENT",
-    "FORMAT_DESCRIPTION_EVENT",
-    "XID_EVENT",
-    "BEGIN_LOAD_QUERY_EVENT",
-    "EXECUTE_LOAD_QUERY_EVENT",
-    "TABLE_MAP_EVENT",
-    "WRITE_ROWS_EVENTv0",
-    "UPDATE_ROWS_EVENTv0",
-    "DELETE_ROWS_EVENTv0",
-    "WRITE_ROWS_EVENTv1",
-    "UPDATE_ROWS_EVENTv1",
-    "DELETE_ROWS_EVENTv1",
-    "INCIDENT_EVENT",
-    "HEARTBEAT_EVENT",
-    "IGNORABLE_EVENT",
-    "ROWS_QUERY_EVENT",
-    "WRITE_ROWS_EVENTv2",
-    "UPDATE_ROWS_EVENTv2",
-    "DELETE_ROWS_EVENTv2",
-    "GTID_EVENT",
-    "ANONYMOUS_GTID_EVENT",
-    "PREVIOUS_GTIDS_EVENT",
-    "TRANSACTION_CONTEXT_EVENT",
-    "VIEW_CHANGE_EVENT",
-    "XA_PREPARE_LOG_EVENT",
-    "PARTIAL_UPDATE_ROWS_EVENT",
-    "TRANSACTION_PAYLOAD_EVENT",
+      "UNKNOWN_EVENT",
+      "START_EVENT_V3",
+      "QUERY_EVENT",
+      "STOP_EVENT",
+      "ROTATE_EVENT",
+      "INTVAR_EVENT",
+      "LOAD_EVENT",
+      "SLAVE_EVENT",
+      "CREATE_FILE_EVENT",
+      "APPEND_BLOCK_EVENT",
+      "EXEC_LOAD_EVENT",
+      "DELETE_FILE_EVENT",
+      "NEW_LOAD_EVENT",
+      "RAND_EVENT",
+      "USER_VAR_EVENT",
+      "FORMAT_DESCRIPTION_EVENT",
+      "XID_EVENT",
+      "BEGIN_LOAD_QUERY_EVENT",
+      "EXECUTE_LOAD_QUERY_EVENT",
+      "TABLE_MAP_EVENT",
+      "WRITE_ROWS_EVENTv0",
+      "UPDATE_ROWS_EVENTv0",
+      "DELETE_ROWS_EVENTv0",
+      "WRITE_ROWS_EVENTv1",
+      "UPDATE_ROWS_EVENTv1",
+      "DELETE_ROWS_EVENTv1",
+      "INCIDENT_EVENT",
+      "HEARTBEAT_EVENT",
+      "IGNORABLE_EVENT",
+      "ROWS_QUERY_EVENT",
+      "WRITE_ROWS_EVENTv2",
+      "UPDATE_ROWS_EVENTv2",
+      "DELETE_ROWS_EVENTv2",
+      "GTID_EVENT",
+      "ANONYMOUS_GTID_EVENT",
+      "PREVIOUS_GTIDS_EVENT",
+      "TRANSACTION_CONTEXT_EVENT",
+      "VIEW_CHANGE_EVENT",
+      "XA_PREPARE_LOG_EVENT",
+      "PARTIAL_UPDATE_ROWS_EVENT",
+      "TRANSACTION_PAYLOAD_EVENT",
   });
   try {
     return names.at(type);
@@ -65,8 +63,6 @@ const char* name_for_binlog_event_type(uint8_t type) {
     return "<INVALID_EVENT_TYPE>";
   }
 }
-
-
 
 uint32_t BinlogProcessor::read_datetime_fractional_part(
     StringReader& r, uint8_t precision) {
@@ -330,9 +326,8 @@ vector<Value> BinlogProcessor::read_row_data(
   return row;
 }
 
-
-
-BinlogProcessor::BinlogProcessor() : filename("<missing-filename>"), position(4) { }
+BinlogProcessor::BinlogProcessor() : filename("<missing-filename>"),
+                                     position(4) {}
 
 const BinlogEventHeader* BinlogProcessor::get_event_header(const string& data) {
   if (data.size() < sizeof(BinlogEventHeader)) {
@@ -529,10 +524,46 @@ BinlogFormatDescriptionEvent BinlogProcessor::parse_format_description_event(
   ev.header = r.get<BinlogEventHeader>();
 
   static const uint8_t expected_header_lengths[40] = {
-    0x00, 0x0D, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00,
-    0x04, 0x00, 0x00, 0x00, 0x61, 0x00, 0x04, 0x1A, 0x08, 0x00,
-    0x00, 0x00, 0x08, 0x08, 0x08, 0x02, 0x00, 0x00, 0x00, 0x0A,
-    0x0A, 0x0A, 0x2A, 0x2A, 0x00, 0x12, 0x34, 0x00, 0x0A, 0x28,
+      0x00,
+      0x0D,
+      0x00,
+      0x08,
+      0x00,
+      0x00,
+      0x00,
+      0x00,
+      0x04,
+      0x00,
+      0x04,
+      0x00,
+      0x00,
+      0x00,
+      0x61,
+      0x00,
+      0x04,
+      0x1A,
+      0x08,
+      0x00,
+      0x00,
+      0x00,
+      0x08,
+      0x08,
+      0x08,
+      0x02,
+      0x00,
+      0x00,
+      0x00,
+      0x0A,
+      0x0A,
+      0x0A,
+      0x2A,
+      0x2A,
+      0x00,
+      0x12,
+      0x34,
+      0x00,
+      0x0A,
+      0x28,
   };
   ev.version = r.get_u16l();
   if (ev.version != 4) {
@@ -552,9 +583,9 @@ BinlogFormatDescriptionEvent BinlogProcessor::parse_format_description_event(
   }
   ev.event_header_lengths = r.get_string_eof();
   if (memcmp(expected_header_lengths, ev.event_header_lengths.data(),
-      ev.event_header_lengths.size() < sizeof(expected_header_lengths)
-        ? ev.event_header_lengths.size()
-        : sizeof(expected_header_lengths))) {
+          ev.event_header_lengths.size() < sizeof(expected_header_lengths)
+              ? ev.event_header_lengths.size()
+              : sizeof(expected_header_lengths))) {
     throw runtime_error("header lengths in FORMAT_DESCRIPTION_EVENT do not match expectations");
   }
 

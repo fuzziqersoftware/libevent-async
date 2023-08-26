@@ -1,16 +1,14 @@
-#include <unordered_set>
-#include <experimental/coroutine>
+#include <coroutine>
 #include <phosg/Network.hh>
+#include <unordered_set>
 
 #include "../Protocols/HTTP/Server.hh"
 
 using namespace std;
 
-
-
 class ExampleHTTPServer : public EventAsync::HTTP::Server {
 public:
-  ExampleHTTPServer(EventAsync::Base& base) : Server(base, nullptr) { }
+  ExampleHTTPServer(EventAsync::Base& base) : Server(base, nullptr) {}
 
 protected:
   virtual EventAsync::DetachedTask handle_request(

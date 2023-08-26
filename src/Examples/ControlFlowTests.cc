@@ -1,20 +1,18 @@
 #include <inttypes.h>
 
-#include <unordered_set>
-#include <experimental/coroutine>
-#include <phosg/UnitTest.hh>
+#include <coroutine>
 #include <phosg/Network.hh>
 #include <phosg/Time.hh>
+#include <phosg/UnitTest.hh>
+#include <unordered_set>
 
-#include "../Task.hh"
 #include "../Base.hh"
 #include "../Buffer.hh"
 #include "../Channel.hh"
+#include "../Task.hh"
 
 using namespace std;
 using namespace EventAsync;
-
-
 
 struct Timer {
   uint64_t start;
@@ -22,7 +20,9 @@ struct Timer {
   uint64_t high;
 
   Timer(uint64_t low = 0, uint64_t high = 0)
-    : start(now()), low(low), high(high) { }
+      : start(now()),
+        low(low),
+        high(high) {}
   ~Timer() noexcept(false) {
     uint64_t duration = now() - this->start;
     fprintf(stderr, "---- duration: %" PRIu64 " usecs\n", duration);
@@ -34,8 +34,6 @@ struct Timer {
     }
   }
 };
-
-
 
 Task<size_t> test_returns_fn1() {
   co_return 5;
@@ -50,8 +48,6 @@ DetachedTask test_returns(Base& base) {
   size_t v = co_await test_returns_fn2();
   expect_eq(v, 9);
 }
-
-
 
 Task<void> test_exceptions_fn1() {
   throw std::runtime_error("exc");
@@ -71,15 +67,11 @@ DetachedTask test_exceptions(Base& base) {
   }
 }
 
-
-
 DetachedTask test_timeouts(Base& base) {
   uint64_t start = now();
   co_await base.sleep(1000000);
   expect_ge(now() - start, 1000000);
 }
-
-
 
 Task<void> sleep_task(Base& base, uint64_t usecs) {
   co_await base.sleep(usecs);
@@ -121,8 +113,6 @@ DetachedTask test_multi_sleep(Base& base) {
   co_await t3;
 }
 
-
-
 Task<void> test_all_sleep_exception_task(Base& base, uint64_t usecs) {
   co_await base.sleep(usecs);
   if (usecs == 1000000) {
@@ -148,12 +138,11 @@ DetachedTask test_all_sleep_exception(Base& base) {
   try {
     co_await tasks[0];
     expect(false);
-  } catch (const runtime_error&) { }
+  } catch (const runtime_error&) {
+  }
   co_await tasks[1];
   co_await tasks[2];
 }
-
-
 
 Task<void> test_all_network_fn(
     Base& base,
@@ -194,8 +183,6 @@ DetachedTask test_all_network(Base& base) {
   co_await tasks[0];
   co_await tasks[1];
 }
-
-
 
 DetachedTask test_any_sleep(Base& base) {
   vector<Task<void>> tasks;
@@ -255,8 +242,6 @@ DetachedTask test_any_sleep(Base& base) {
   co_await tasks[2];
 }
 
-
-
 DetachedTask test_all_limit_sleep(Base& base) {
   vector<Task<void>> tasks;
   tasks.emplace_back(sleep_task(base, 1000000));
@@ -278,8 +263,6 @@ DetachedTask test_all_limit_sleep(Base& base) {
   co_await tasks[3];
   co_await tasks[4];
 }
-
-
 
 Task<void> test_future_void_set(Base& base, Future<void>& f) {
   co_await base.sleep(1000000);
@@ -330,8 +313,6 @@ DetachedTask test_future_void(Base& base) {
   }
 }
 
-
-
 Task<void> test_future_void_set_exc(Base& base, Future<void>& f) {
   co_await base.sleep(1000000);
   f.set_exception(make_exception_ptr(out_of_range("nope")));
@@ -341,7 +322,8 @@ Task<void> test_future_void_await_exc(Future<void>& f) {
   try {
     co_await f;
     throw logic_error("co_await f should have thrown but it did not");
-  } catch (const out_of_range&) { }
+  } catch (const out_of_range&) {
+  }
 }
 
 DetachedTask test_future_void_exc(Base& base) {
@@ -386,18 +368,16 @@ DetachedTask test_future_void_exc(Base& base) {
   }
 }
 
-
-
 template <typename FutureT>
 Task<int64_t> test_future_set_value(Base& base, FutureT& f, int64_t value) {
   co_await base.sleep(1000000);
   f.set_result(value);
-  co_return move(value);
+  co_return std::move(value);
 }
 
 template <typename FutureT>
 Task<int64_t> test_future_await(Base& base, FutureT& f) {
-  co_return move(co_await f);
+  co_return std::move(co_await f);
 }
 
 DetachedTask test_future_value(Base& base) {
@@ -498,8 +478,6 @@ DetachedTask test_deferred_future_value(Base& base) {
   }
 }
 
-
-
 Task<int64_t> test_channel_read_task(Base& base, Channel<int64_t>& c) {
   co_return (co_await c.read());
 }
@@ -508,7 +486,7 @@ Task<int64_t> test_channel_write_task(Base& base, Channel<int64_t>& c,
     uint64_t usecs, int64_t v) {
   co_await base.sleep(usecs);
   c.write(v);
-  co_return move(v);
+  co_return std::move(v);
 }
 
 DetachedTask test_channel(Base& base) {
@@ -567,8 +545,6 @@ DetachedTask test_channel(Base& base) {
   }
 }
 
-
-
 int main(int, char**) {
 
   struct Case {
@@ -576,20 +552,20 @@ int main(int, char**) {
     DetachedTask (*fn)(Base&);
   };
   vector<Case> test_cases = {
-    {"test_returns", test_returns},
-    {"test_exceptions", test_exceptions},
-    {"test_timeouts", test_timeouts},
-    {"test_multi_sleep", test_multi_sleep},
-    {"test_all_sleep", test_all_sleep},
-    {"test_all_sleep_exception", test_all_sleep_exception},
-    {"test_all_network", test_all_network},
-    {"test_any_sleep", test_any_sleep},
-    {"test_all_limit_sleep", test_all_limit_sleep},
-    {"test_future_void", test_future_void},
-    {"test_future_void_exc", test_future_void_exc},
-    {"test_future_value", test_future_value},
-    {"test_deferred_future_value", test_deferred_future_value},
-    {"test_channel", test_channel},
+      {"test_returns", test_returns},
+      {"test_exceptions", test_exceptions},
+      {"test_timeouts", test_timeouts},
+      {"test_multi_sleep", test_multi_sleep},
+      {"test_all_sleep", test_all_sleep},
+      {"test_all_sleep_exception", test_all_sleep_exception},
+      {"test_all_network", test_all_network},
+      {"test_any_sleep", test_any_sleep},
+      {"test_all_limit_sleep", test_all_limit_sleep},
+      {"test_future_void", test_future_void},
+      {"test_future_void_exc", test_future_void_exc},
+      {"test_future_value", test_future_value},
+      {"test_deferred_future_value", test_deferred_future_value},
+      {"test_channel", test_channel},
   };
 
   Base base;

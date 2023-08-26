@@ -1,6 +1,6 @@
 #pragma once
 
-#include <experimental/coroutine>
+#include <coroutine>
 #include <memory>
 #include <unordered_set>
 #include <variant>
@@ -25,11 +25,11 @@ public:
       return this->task->coro.done();
     }
 
-    std::experimental::coroutine_handle<> await_suspend(
-        std::experimental::coroutine_handle<> awaiting_coro) const noexcept {
+    std::coroutine_handle<> await_suspend(
+        std::coroutine_handle<> awaiting_coro) const noexcept {
       this->task->link(awaiting_coro);
       if (this->task->started) {
-        return std::experimental::noop_coroutine();
+        return std::noop_coroutine();
       } else {
         this->task->started = true;
         return this->task->coro;
@@ -69,7 +69,7 @@ public:
       return false;
     }
 
-    void await_suspend(std::experimental::coroutine_handle<> awaiting_coro) const {
+    void await_suspend(std::coroutine_handle<> awaiting_coro) const {
       for (auto* task : this->tasks) {
         task->link(awaiting_coro);
       }
@@ -99,7 +99,7 @@ public:
   };
 
   TaskBase() noexcept = default;
-  TaskBase(std::experimental::coroutine_handle<promise_type> coro) noexcept
+  TaskBase(std::coroutine_handle<promise_type> coro) noexcept
     : coro(coro), started(false) { }
   TaskBase(const TaskBase& other) = delete;
   TaskBase(TaskBase&& other) noexcept : coro(other.coro), started(other.started) {
@@ -136,12 +136,12 @@ public:
     return this->coro.done();
   }
 
-  void link(std::experimental::coroutine_handle<> coro) {
+  void link(std::coroutine_handle<> coro) {
     this->coro.promise().set_awaiting_coro(coro);
   }
 
 protected:
-  std::experimental::coroutine_handle<promise_type> coro;
+  std::coroutine_handle<promise_type> coro;
   bool started;
 };
 
@@ -216,18 +216,18 @@ public:
     void await_resume() const noexcept { }
 
     template <class Promise>
-    std::experimental::coroutine_handle<> await_suspend(
-        std::experimental::coroutine_handle<Promise> coro) noexcept {
+    std::coroutine_handle<> await_suspend(
+        std::coroutine_handle<Promise> coro) noexcept {
       auto awaiting_coro = coro.promise().awaiting_coro;
       if (awaiting_coro) {
         return coro.promise().awaiting_coro;
       } else {
-        return std::experimental::noop_coroutine();
+        return std::noop_coroutine();
       }
     }
   };
 
-  void set_awaiting_coro(std::experimental::coroutine_handle<> coro) noexcept {
+  void set_awaiting_coro(std::coroutine_handle<> coro) noexcept {
     this->awaiting_coro = coro;
   }
 
@@ -242,11 +242,11 @@ public:
 
   Task<ReturnT> get_return_object() {
     return Task<ReturnT>(
-        std::experimental::coroutine_handle<TaskPromise>::from_promise(*this));
+        std::coroutine_handle<TaskPromise>::from_promise(*this));
   }
 
-  std::experimental::suspend_always initial_suspend() noexcept {
-    return std::experimental::suspend_always();
+  std::suspend_always initial_suspend() noexcept {
+    return std::suspend_always();
   }
 
   FinalAwaiter final_suspend() noexcept {
@@ -262,7 +262,7 @@ public:
   }
 
 private:
-  std::experimental::coroutine_handle<> awaiting_coro;
+  std::coroutine_handle<> awaiting_coro;
   std::variant<ReturnT, std::exception_ptr> value;
 };
 
@@ -277,18 +277,18 @@ public:
     void await_resume() const noexcept { }
 
     template <class Promise>
-    std::experimental::coroutine_handle<> await_suspend(
-        std::experimental::coroutine_handle<Promise> coro) noexcept {
+    std::coroutine_handle<> await_suspend(
+        std::coroutine_handle<Promise> coro) noexcept {
       auto awaiting_coro = coro.promise().awaiting_coro;
       if (awaiting_coro) {
         return coro.promise().awaiting_coro;
       } else {
-        return std::experimental::noop_coroutine();
+        return std::noop_coroutine();
       }
     }
   };
 
-  void set_awaiting_coro(std::experimental::coroutine_handle<> coro) noexcept {
+  void set_awaiting_coro(std::coroutine_handle<> coro) noexcept {
     this->awaiting_coro = coro;
   }
 
@@ -300,11 +300,11 @@ public:
 
   Task<void> get_return_object() {
     return Task<void>(
-        std::experimental::coroutine_handle<TaskPromise>::from_promise(*this));
+        std::coroutine_handle<TaskPromise>::from_promise(*this));
   }
 
-  std::experimental::suspend_always initial_suspend() noexcept {
-    return std::experimental::suspend_always();
+  std::suspend_always initial_suspend() noexcept {
+    return std::suspend_always();
   }
 
   FinalAwaiter final_suspend() noexcept {
@@ -318,7 +318,7 @@ public:
   }
 
 private:
-  std::experimental::coroutine_handle<> awaiting_coro;
+  std::coroutine_handle<> awaiting_coro;
   std::exception_ptr exc;
 };
 
@@ -328,7 +328,7 @@ class DetachedTaskPromise;
 
 class DetachedTaskCoroutine {
 public:
-  explicit DetachedTaskCoroutine(std::experimental::coroutine_handle<> coro) noexcept;
+  explicit DetachedTaskCoroutine(std::coroutine_handle<> coro) noexcept;
   // Note: this is also called by the final awaiter when the task returns
   // naturally, so it's technically misnamed... external callers will only need
   // to think of it as cancellation though.
@@ -336,7 +336,7 @@ public:
 
 private:
   std::atomic<bool> destroyed;
-  std::experimental::coroutine_handle<void> coro;
+  std::coroutine_handle<void> coro;
 };
 
 class DetachedTask {
@@ -356,7 +356,7 @@ public:
     explicit FinalAwaiter(std::shared_ptr<DetachedTaskCoroutine> handle) noexcept;
     void await_resume() const noexcept;
     bool await_ready() const noexcept;
-    void await_suspend(std::experimental::coroutine_handle<> coro) noexcept;
+    void await_suspend(std::coroutine_handle<> coro) noexcept;
   private:
     std::shared_ptr<DetachedTaskCoroutine> handle;
   };
@@ -364,7 +364,7 @@ public:
   DetachedTaskPromise();
 
   DetachedTask get_return_object();
-  std::experimental::suspend_never initial_suspend() noexcept;
+  std::suspend_never initial_suspend() noexcept;
   FinalAwaiter final_suspend() noexcept;
   void return_void() const noexcept;
   void unhandled_exception() const noexcept;

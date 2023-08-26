@@ -2,17 +2,15 @@
 
 #include <stdint.h>
 
-#include <string>
-#include <phosg/Filesystem.hh>
-#include "../../Task.hh"
 #include "../../Base.hh"
-#include "../../DNSBase.hh"
 #include "../../Buffer.hh"
+#include "../../DNSBase.hh"
+#include "../../Task.hh"
+#include <phosg/Filesystem.hh>
+#include <string>
 
 #include "ProtocolBuffer.hh"
 #include "Types.hh"
-
-
 
 namespace EventAsync::MySQL {
 

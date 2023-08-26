@@ -5,7 +5,7 @@
 
 #include <memory>
 #include <string>
-#include <experimental/coroutine>
+#include <coroutine>
 #include <phosg/Encoding.hh>
 
 #include "Base.hh"
@@ -167,7 +167,7 @@ struct Buffer {
     ReadAwaiter& operator=(const ReadAwaiter&) = delete;
     ReadAwaiter& operator=(ReadAwaiter&&) = delete;
     bool await_ready() const noexcept;
-    void await_suspend(std::experimental::coroutine_handle<> coro);
+    void await_suspend(std::coroutine_handle<> coro);
   protected:
     ReadAwaiter(
         Buffer& buf,
@@ -179,7 +179,7 @@ struct Buffer {
     size_t limit;
     size_t bytes_read;
     bool err;
-    std::experimental::coroutine_handle<> coro;
+    std::coroutine_handle<> coro;
   };
 
   class ReadAtMostAwaiter : public ReadAwaiter {
@@ -220,7 +220,7 @@ struct Buffer {
     WriteAwaiter& operator=(const WriteAwaiter&) = delete;
     WriteAwaiter& operator=(WriteAwaiter&&) = delete;
     bool await_ready() const noexcept;
-    void await_suspend(std::experimental::coroutine_handle<> coro);
+    void await_suspend(std::coroutine_handle<> coro);
     void await_resume();
   protected:
     Buffer& buf;
@@ -228,7 +228,7 @@ struct Buffer {
     ssize_t limit;
     size_t bytes_written;
     bool err;
-    std::experimental::coroutine_handle<> coro;
+    std::coroutine_handle<> coro;
     static void on_write_ready(evutil_socket_t fd, short what, void* ctx);
   };
 

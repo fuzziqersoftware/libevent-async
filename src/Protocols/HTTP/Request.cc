@@ -7,26 +7,28 @@
 
 using namespace std;
 
-
-
 namespace EventAsync::HTTP {
 
 Request::Request(Base& base)
-  : base(base),
-    req(evhttp_request_new(&Request::on_response, this)),
-    owned(false),
-    is_complete(false),
-    awaiter(nullptr) {
+    : base(base),
+      req(evhttp_request_new(&Request::on_response, this)),
+      owned(false),
+      is_complete(false),
+      awaiter(nullptr) {
   if (!this->req) {
     throw bad_alloc();
   }
 }
 
 Request::Request(Base& base, struct evhttp_request* req)
-  : base(base), req(req), owned(false) { }
+    : base(base),
+      req(req),
+      owned(false) {}
 
 Request::Request(Request&& other)
-  : base(other.base), req(other.req), owned(other.owned) {
+    : base(other.base),
+      req(other.req),
+      owned(other.owned) {
   other.owned = false;
 }
 
@@ -58,7 +60,7 @@ unordered_multimap<string, string> Request::parse_url_params(const char* query) 
           value[write_offset] =
               static_cast<char>(value_for_hex_char(value[read_offset + 1]) << 4) |
               static_cast<char>(value_for_hex_char(value[read_offset + 2]));
-              read_offset += 3;
+          read_offset += 3;
         } else if (value[write_offset] == '+') {
           value[write_offset] = ' ';
           read_offset++;
@@ -88,7 +90,7 @@ unordered_map<string, string> Request::parse_url_params_unique(
     const char* query) {
   unordered_map<string, string> ret;
   for (const auto& it : Request::parse_url_params(query)) {
-    ret.emplace(it.first, move(it.second));
+    ret.emplace(it.first, std::move(it.second));
   }
   return ret;
 }

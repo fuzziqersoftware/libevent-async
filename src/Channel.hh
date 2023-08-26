@@ -1,6 +1,6 @@
 #pragma once
 
-#include <experimental/coroutine>
+#include <coroutine>
 #include <deque>
 #include <forward_list>
 
@@ -43,7 +43,7 @@ public:
       return !this->c.queue.empty();
     }
 
-    void await_suspend(std::experimental::coroutine_handle<> awaiting_coro) {
+    void await_suspend(std::coroutine_handle<> awaiting_coro) {
       this->c.awaiting_coros_insert_it = this->c.awaiting_coros.emplace_after(
           this->c.awaiting_coros_insert_it, awaiting_coro);
     }
@@ -82,8 +82,8 @@ protected:
   }
 
   std::deque<ItemT> queue;
-  std::forward_list<std::experimental::coroutine_handle<>> awaiting_coros;
-  std::forward_list<std::experimental::coroutine_handle<>>::iterator awaiting_coros_insert_it;
+  std::forward_list<std::coroutine_handle<>> awaiting_coros;
+  std::forward_list<std::coroutine_handle<>>::iterator awaiting_coros_insert_it;
 };
 
 } // namespace EventAsync

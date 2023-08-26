@@ -9,7 +9,6 @@
 #include "Future.hh"
 
 using namespace std;
-using namespace std::experimental;
 
 
 
@@ -102,7 +101,7 @@ Task<int> Base::connect(const std::string& addr, int port) {
   // TODO: this does a blocking DNS query if addr isn't an IP address string
   int fd = ::connect(addr, port, true);
   co_await EventAwaiter(*this, fd, EV_WRITE);
-  co_return move(fd);
+  co_return std::move(fd);
 }
 
 
@@ -151,7 +150,7 @@ Base::RecvFromResult&& Base::RecvFromAwaiter::await_resume() {
   if (this->err) {
     throw runtime_error("failed to read from fd");
   }
-  return move(this->res);
+  return std::move(this->res);
 }
 
 void Base::RecvFromAwaiter::on_read_ready(evutil_socket_t, short, void* ctx) {

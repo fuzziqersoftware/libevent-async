@@ -1,6 +1,6 @@
 #pragma once
 
-#include <experimental/coroutine>
+#include <coroutine>
 #include <memory>
 #include <unordered_set>
 #include <variant>
@@ -15,7 +15,7 @@ class FutureBase {
 public:
   FutureBase() : awaiting_coros_insert_it(this->awaiting_coros.before_begin()) { }
   FutureBase(const ResultT& value) : value(value) { }
-  FutureBase(ResultT&& value) : value(move(value)) { }
+  FutureBase(ResultT&& value) : value(std::move(value)) { }
   FutureBase(const FutureBase&) = delete;
   FutureBase(FutureBase&&);
   FutureBase& operator=(const FutureBase&) = delete;
@@ -33,7 +33,7 @@ public:
     return this->done();
   }
 
-  void await_suspend(std::experimental::coroutine_handle<> awaiting_coro) {
+  void await_suspend(std::coroutine_handle<> awaiting_coro) {
     this->awaiting_coros_insert_it = this->awaiting_coros.emplace_after(
         this->awaiting_coros_insert_it, awaiting_coro);
   }
@@ -129,8 +129,8 @@ protected:
   }
 
   std::variant<std::monostate, ResultT, std::exception_ptr> value;
-  std::forward_list<std::experimental::coroutine_handle<>> awaiting_coros;
-  std::forward_list<std::experimental::coroutine_handle<>>::iterator awaiting_coros_insert_it;
+  std::forward_list<std::coroutine_handle<>> awaiting_coros;
+  std::forward_list<std::coroutine_handle<>>::iterator awaiting_coros_insert_it;
 };
 
 template <typename ResultT>

@@ -2,11 +2,9 @@
 
 #include <stdint.h>
 
-#include <string>
-#include <phosg/Strings.hh>
 #include "../../Buffer.hh"
-
-
+#include <phosg/Strings.hh>
+#include <string>
 
 namespace EventAsync::MySQL {
 

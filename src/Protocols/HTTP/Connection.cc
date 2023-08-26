@@ -1,25 +1,22 @@
 #include "Connection.hh"
 
-#include <openssl/x509v3.h>
 #include <event2/bufferevent_ssl.h>
+#include <openssl/x509v3.h>
 
 #include <phosg/Strings.hh>
 #include <phosg/Time.hh>
 
 using namespace std;
-using namespace std::experimental;
-
-
 
 namespace EventAsync::HTTP {
 
 Connection::Connection(
-      Base& base,
-      DNSBase& dns_base,
-      const string& host,
-      uint16_t port,
-      SSL_CTX* ssl_ctx)
-  : base(base) {
+    Base& base,
+    DNSBase& dns_base,
+    const string& host,
+    uint16_t port,
+    SSL_CTX* ssl_ctx)
+    : base(base) {
 
   if (ssl_ctx) {
     SSL* ssl = SSL_new(ssl_ctx);
@@ -74,7 +71,8 @@ Connection::Connection(
 }
 
 Connection::Connection(Connection&& other)
-  : base(other.base), conn(other.conn) {
+    : base(other.base),
+      conn(other.conn) {
 }
 
 Connection::~Connection() {
@@ -132,9 +130,9 @@ void Connection::set_timeout(int timeout_secs) {
   evhttp_connection_set_timeout(this->conn, timeout_secs);
 }
 
-
-
-Connection::Awaiter::Awaiter(Request& req) : req(req), coro(nullptr) { }
+Connection::Awaiter::Awaiter(Request& req)
+    : req(req),
+      coro(nullptr) {}
 
 bool Connection::Awaiter::await_ready() const noexcept {
   return this->req.is_complete;
