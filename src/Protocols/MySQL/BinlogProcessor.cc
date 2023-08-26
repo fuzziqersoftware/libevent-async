@@ -374,7 +374,7 @@ BinlogTableMapEvent BinlogProcessor::parse_table_map_event(const string& data) {
   }
 
   // Uncomment to debug TABLE_MAP_EVENT parsing
-  // fprintf(stderr, "/* MAP TABLE %s.%s AS %llu; */\n",
+  // fprintf(stderr, "/* MAP TABLE %s.%s AS %" PRIu64 "; */\n",
   //     ti->database_name.c_str(), ti->table_name.c_str(), table_id);
   // for (size_t x = 0; x < num_columns; x++) {
   //   const auto& ci = ti->columns[x];

@@ -39,7 +39,7 @@ EventAsync::DetachedTask read_binlogs(
   }
 
   co_await client.read_binlogs(filename, start_position);
-  fprintf(stdout, "-- starting at %s:%llu\n\n", filename.c_str(), start_position);
+  fprintf(stdout, "-- starting at %s:%" PRIu64 "\n\n", filename.c_str(), start_position);
 
   auto print_pos_comment_start = +[](const BinlogEventHeader& header, const string& filename) {
     uint32_t start_offset = header.end_position - header.length;
@@ -151,14 +151,14 @@ EventAsync::DetachedTask read_binlogs(
       case EventAsync::MySQL::BinlogEventType::XID_EVENT: {
         proc.parse_xid_event(data);
         // print_pos_comment_start(header, filename);
-        // fprintf(stdout, "xid %llu */ COMMIT;\n", r.get_u64());
+        // fprintf(stdout, "xid %" PRIu64 " */ COMMIT;\n", r.get_u64());
         break;
       }
 
       case EventAsync::MySQL::BinlogEventType::ROTATE_EVENT: {
         auto ev = proc.parse_rotate_event(data);
         print_pos_comment_start(ev.header, filename);
-        fprintf(stdout, "next log pos %s:%llu */\n",
+        fprintf(stdout, "next log pos %s:%" PRIu64 " */\n",
             ev.next_filename.c_str(), ev.next_position);
         filename = ev.next_filename;
         break;

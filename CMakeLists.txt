@@ -71,6 +71,9 @@ target_link_libraries(ControlFlowTests event-async)
 add_executable(EchoServer src/Examples/EchoServer.cc)
 target_link_libraries(EchoServer event-async)
 
+add_executable(UDPEchoServer src/Examples/UDPEchoServer.cc)
+target_link_libraries(UDPEchoServer event-async)
+
 add_executable(RangeReverseDNS src/Examples/RangeReverseDNS.cc)
 target_link_libraries(RangeReverseDNS event-async)
 

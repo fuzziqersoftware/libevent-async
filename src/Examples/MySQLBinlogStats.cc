@@ -153,7 +153,7 @@ EventAsync::DetachedTask generate_binlog_stats(
   StatsDClient statsd(base, opts.stats_host, opts.stats_port);
 
   co_await client.read_binlogs(current_filename, current_position);
-  fprintf(stderr, "starting at %s:%llu\n\n",
+  fprintf(stderr, "starting at %s:%" PRIu64 "\n\n",
       current_filename.c_str(), current_position);
 
   BinlogProcessor proc;

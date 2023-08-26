@@ -127,9 +127,9 @@ const vector<unordered_map<string, Value>>& ResultSet::rows_dicts() const {
 
 string format_cell_value(const Value& cell) {
   if (holds_alternative<uint64_t>(cell)) {
-    return string_printf("(uint64) %llu", get<uint64_t>(cell));
+    return string_printf("(uint64) %" PRIu64, get<uint64_t>(cell));
   } else if (holds_alternative<int64_t>(cell)) {
-    return string_printf("(int64) %lld", get<int64_t>(cell));
+    return string_printf("(int64) %" PRId64, get<int64_t>(cell));
   } else if (holds_alternative<float>(cell)) {
     return string_printf("(float) %g", get<float>(cell));
   } else if (holds_alternative<double>(cell)) {
@@ -153,8 +153,8 @@ string format_cell_value(const Value& cell) {
 void ResultSet::print(FILE* stream) const {
   fprintf(stream, "ResultSet:\n");
   fprintf(stream, "  Metadata:\n");
-  fprintf(stream, "    affected_rows: %llu\n", this->affected_rows);
-  fprintf(stream, "    insert_id: %llu\n", this->insert_id);
+  fprintf(stream, "    affected_rows: %" PRIu64 "\n", this->affected_rows);
+  fprintf(stream, "    insert_id: %" PRIu64 "\n", this->insert_id);
   fprintf(stream, "    status_flags: 0x%04hX\n", this->status_flags);
   fprintf(stream, "    warning_count: %hu\n", this->warning_count);
   fprintf(stream, "  Columns:\n");
