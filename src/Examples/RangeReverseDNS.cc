@@ -51,7 +51,7 @@ DetachedTask print_reverse_range_lookup_results(
   s_addr_base &= ~((1 << (32 - scope_bits)) - 1);
   DNSBase dns_base(base);
   vector<Task<void>> tasks;
-  for (size_t x = 0; x < (1 << (32 - scope_bits)); x++) {
+  for (size_t x = 0; x < static_cast<size_t>(1 << (32 - scope_bits)); x++) {
     tasks.emplace_back(print_reverse_lookup_result(base, dns_base, s_addr_base | x, delay_usecs));
   }
   co_await all_limit(tasks.begin(), tasks.end(), parallelism);
