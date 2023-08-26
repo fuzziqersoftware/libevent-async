@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include <coroutine>
 #include <phosg/Network.hh>
 #include <phosg/Strings.hh>
