@@ -3,6 +3,7 @@
 #include <event2/event.h>
 
 #include <coroutine>
+#include <functional>
 #include <string>
 #include <vector>
 
