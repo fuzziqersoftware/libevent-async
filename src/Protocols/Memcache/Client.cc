@@ -93,7 +93,7 @@ Task<Client::GetResult> Client::get(
   header = co_await this->read_response_header(buf,
       ResponseStatus::KEY_NOT_FOUND);
   if (header.status) {
-    co_return {.key_found = false};
+    co_return {.value = "", .cas = 0, .flags = 0, .key_found = false};
   }
 
   if (header.extras_size != 4) {
