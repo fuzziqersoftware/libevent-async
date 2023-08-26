@@ -1,3 +1,5 @@
+#include <signal.h>
+
 #include <coroutine>
 #include <phosg/Encoding.hh>
 #include <phosg/Filesystem.hh>
