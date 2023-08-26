@@ -19,6 +19,7 @@ libmemcache-async.a
 # Executables
 ControlFlowTests
 EchoServer
+UDPEchoServer
 RangeReverseDNS
 HTTPServer
 HTTPWebsocketServer
