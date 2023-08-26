@@ -5,11 +5,9 @@
 
 using namespace std;
 
-
-
 namespace EventAsync {
 
-Event::Event() : ev(nullptr) { }
+Event::Event() : ev(nullptr) {}
 
 Event::Event(
     Base& base,
@@ -17,7 +15,7 @@ Event::Event(
     short what,
     void (*cb)(evutil_socket_t fd, short what, void* ctx),
     void* ctx)
-  : ev(event_new(base.base, fd, what, cb, ctx)) {
+    : ev(event_new(base.base, fd, what, cb, ctx)) {
   if (!this->ev) {
     throw bad_alloc();
   }
@@ -59,14 +57,13 @@ void Event::del() {
   }
 }
 
-
-
 TimeoutEvent::TimeoutEvent(
     Base& base,
     uint64_t timeout,
     void (*cb)(evutil_socket_t fd, short what, void* ctx),
     void* ctx)
-  : Event(base, -1, EV_TIMEOUT, cb, ctx), timeout(timeout) { }
+    : Event(base, -1, EV_TIMEOUT, cb, ctx),
+      timeout(timeout) {}
 
 void TimeoutEvent::add() {
   auto tv = usecs_to_timeval(this->timeout);
@@ -75,19 +72,16 @@ void TimeoutEvent::add() {
   }
 }
 
-
-
 SignalEvent::SignalEvent(
     Base& base,
     int signum,
     void (*cb)(evutil_socket_t fd, short what, void* ctx),
     void* ctx)
-  : Event(base, signum, EV_SIGNAL | EV_PERSIST, cb, ctx) { }
-
-
+    : Event(base, signum, EV_SIGNAL | EV_PERSIST, cb, ctx) {}
 
 EventAwaiter::EventAwaiter(Base& base, evutil_socket_t fd, short what)
-  : event(base, fd, what, &EventAwaiter::on_trigger, this), coro(nullptr) { }
+    : event(base, fd, what, &EventAwaiter::on_trigger, this),
+      coro(nullptr) {}
 
 bool EventAwaiter::await_ready() const {
   return false;
@@ -106,10 +100,9 @@ void EventAwaiter::on_trigger(evutil_socket_t, short, void* ctx) {
   reinterpret_cast<EventAwaiter*>(ctx)->coro.resume();
 }
 
-
-
 TimeoutAwaiter::TimeoutAwaiter(Base& base, uint64_t timeout)
-  : event(base, timeout, &TimeoutAwaiter::on_trigger, this), coro(nullptr) { }
+    : event(base, timeout, &TimeoutAwaiter::on_trigger, this),
+      coro(nullptr) {}
 
 bool TimeoutAwaiter::await_ready() const {
   return false;

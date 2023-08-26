@@ -4,8 +4,6 @@
 
 #include <memory>
 
-
-
 namespace EventAsync {
 
 class Config {
@@ -29,7 +27,7 @@ public:
   struct event_config* get();
 
 protected:
-  std::unique_ptr<struct event_config, void(*)(struct event_config*)> config;
+  std::unique_ptr<struct event_config, void (*)(struct event_config*)> config;
 };
 
 } // namespace EventAsync

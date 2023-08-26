@@ -1,15 +1,14 @@
 #pragma once
 
+#include <atomic>
 #include <coroutine>
 #include <memory>
 #include <unordered_set>
 #include <variant>
 
-
-
 namespace EventAsync {
 
-template<typename ReturnT>
+template <typename ReturnT>
 class TaskPromise;
 
 template <typename PromiseT>
@@ -19,7 +18,7 @@ public:
 
   class AwaiterBase {
   public:
-    explicit AwaiterBase(TaskBase* task) : task(task) { }
+    explicit AwaiterBase(TaskBase* task) : task(task) {}
 
     bool await_ready() const noexcept {
       return this->task->coro.done();
@@ -43,7 +42,7 @@ public:
   class NoReturnAwaiter : public AwaiterBase {
   public:
     using AwaiterBase::AwaiterBase;
-    void await_resume() { }
+    void await_resume() {}
   };
 
   class AnyAwaiter {
@@ -100,9 +99,11 @@ public:
 
   TaskBase() noexcept = default;
   TaskBase(std::coroutine_handle<promise_type> coro) noexcept
-    : coro(coro), started(false) { }
+      : coro(coro),
+        started(false) {}
   TaskBase(const TaskBase& other) = delete;
-  TaskBase(TaskBase&& other) noexcept : coro(other.coro), started(other.started) {
+  TaskBase(TaskBase&& other) noexcept : coro(other.coro),
+                                        started(other.started) {
     other.coro = nullptr;
   }
   ~TaskBase() noexcept {
@@ -203,9 +204,7 @@ public:
   void result() const;
 };
 
-
-
-template<typename ReturnT>
+template <typename ReturnT>
 class TaskPromise {
 public:
   class FinalAwaiter {
@@ -213,7 +212,7 @@ public:
     bool await_ready() const noexcept {
       return false;
     }
-    void await_resume() const noexcept { }
+    void await_resume() const noexcept {}
 
     template <class Promise>
     std::coroutine_handle<> await_suspend(
@@ -266,7 +265,7 @@ private:
   std::variant<ReturnT, std::exception_ptr> value;
 };
 
-template<>
+template <>
 class TaskPromise<void> {
 public:
   class FinalAwaiter {
@@ -274,7 +273,7 @@ public:
     bool await_ready() const noexcept {
       return false;
     }
-    void await_resume() const noexcept { }
+    void await_resume() const noexcept {}
 
     template <class Promise>
     std::coroutine_handle<> await_suspend(
@@ -311,7 +310,7 @@ public:
     return FinalAwaiter();
   }
 
-  void return_void() const noexcept { }
+  void return_void() const noexcept {}
 
   void unhandled_exception() noexcept {
     this->exc = std::current_exception();
@@ -321,8 +320,6 @@ private:
   std::coroutine_handle<> awaiting_coro;
   std::exception_ptr exc;
 };
-
-
 
 class DetachedTaskPromise;
 
@@ -345,6 +342,7 @@ public:
 
   explicit DetachedTask(std::shared_ptr<DetachedTaskCoroutine> handle);
   bool cancel() noexcept;
+
 private:
   std::shared_ptr<DetachedTaskCoroutine> handle;
 };
@@ -357,6 +355,7 @@ public:
     void await_resume() const noexcept;
     bool await_ready() const noexcept;
     void await_suspend(std::coroutine_handle<> coro) noexcept;
+
   private:
     std::shared_ptr<DetachedTaskCoroutine> handle;
   };
@@ -373,16 +372,14 @@ private:
   std::shared_ptr<DetachedTaskCoroutine> handle;
 };
 
-
-
 template <typename TaskT>
 Task<void> multi(TaskT& t) {
   t.start();
   co_await t.wait();
 }
 
-template<typename FirstTaskT, typename... RemainingTasksTs>
-Task<void> multi(FirstTaskT& t, RemainingTasksTs& ...r) {
+template <typename FirstTaskT, typename... RemainingTasksTs>
+Task<void> multi(FirstTaskT& t, RemainingTasksTs&... r) {
   t.start();
   co_await multi(r...);
   co_await t.wait();
@@ -428,8 +425,8 @@ Task<void> all_limit(IteratorT begin_it, IteratorT end_it, size_t parallelism) {
     if (aw.num_tasks() >= parallelism || start_it == end_it) {
       co_await aw;
 
-    // Otherwise, there are not too many tasks running and there are more tasks
-    // to start, so start one.
+      // Otherwise, there are not too many tasks running and there are more tasks
+      // to start, so start one.
     } else {
       start_it->start();
       aw.add_task(&(*start_it));

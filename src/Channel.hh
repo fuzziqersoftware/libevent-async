@@ -4,8 +4,6 @@
 #include <deque>
 #include <forward_list>
 
-
-
 namespace EventAsync {
 
 // TODO: Should we support Channel<void>? Currently we don't, but it could turn
@@ -15,7 +13,7 @@ namespace EventAsync {
 template <typename ItemT>
 class Channel {
 public:
-  Channel() : awaiting_coros_insert_it(this->awaiting_coros.before_begin()) { }
+  Channel() : awaiting_coros_insert_it(this->awaiting_coros.before_begin()) {}
   Channel(const Channel&) = delete;
   Channel(Channel&&) = default;
   Channel& operator=(const Channel&) = delete;
@@ -37,7 +35,7 @@ public:
 
   class ReadAwaiter {
   public:
-    ReadAwaiter(Channel& c) : c(c) { }
+    ReadAwaiter(Channel& c) : c(c) {}
 
     bool await_ready() const noexcept {
       return !this->c.queue.empty();

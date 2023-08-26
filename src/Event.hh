@@ -2,10 +2,8 @@
 
 #include <event2/event.h>
 
-#include <memory>
 #include <coroutine>
-
-
+#include <memory>
 
 namespace EventAsync {
 
@@ -61,8 +59,6 @@ public:
   virtual ~SignalEvent() = default;
 };
 
-
-
 // TODO: merge this with TimeoutAwaiter somehow
 class EventAwaiter {
 public:
@@ -70,6 +66,7 @@ public:
   bool await_ready() const;
   void await_suspend(std::coroutine_handle<> coro);
   void await_resume();
+
 private:
   Event event;
   std::coroutine_handle<> coro;
@@ -82,6 +79,7 @@ public:
   bool await_ready() const;
   void await_suspend(std::coroutine_handle<> coro);
   void await_resume();
+
 private:
   TimeoutEvent event;
   std::coroutine_handle<> coro;

@@ -3,15 +3,13 @@
 #include <event2/event.h>
 
 #include <coroutine>
-#include <vector>
 #include <string>
+#include <vector>
 
-#include "Task.hh"
-#include "Future.hh"
 #include "Config.hh"
 #include "Event.hh"
-
-
+#include "Future.hh"
+#include "Task.hh"
 
 namespace EventAsync {
 
@@ -56,6 +54,7 @@ public:
     bool await_ready();
     void await_suspend(std::coroutine_handle<> coro);
     RecvFromResult&& await_resume();
+
   protected:
     static void on_read_ready(evutil_socket_t fd, short what, void* ctx);
     Base& base;
@@ -77,6 +76,7 @@ public:
     bool await_ready();
     void await_suspend(std::coroutine_handle<> coro);
     void await_resume();
+
   protected:
     static void on_read_ready(evutil_socket_t fd, short what, void* ctx);
     Base& base;
@@ -99,6 +99,7 @@ public:
     bool await_ready();
     void await_suspend(std::coroutine_handle<> coro);
     void await_resume();
+
   protected:
     static void on_write_ready(evutil_socket_t fd, short what, void* ctx);
     Base& base;
@@ -117,6 +118,7 @@ public:
     int await_resume();
     bool await_ready() const noexcept;
     void await_suspend(std::coroutine_handle<> coro);
+
   private:
     static void on_accept_ready(int fd, short what, void* ctx);
 
@@ -155,9 +157,11 @@ protected:
 template <typename ValueT>
 class DeferredFuture : public Future<ValueT> {
 public:
-  explicit DeferredFuture(Base& base) : base(base) { }
-  DeferredFuture(Base& base, const ValueT& v) : Future<ValueT>(v), base(base) { }
-  DeferredFuture(Base& base, ValueT&& v) : Future<ValueT>(std::move(v)), base(base) { }
+  explicit DeferredFuture(Base& base) : base(base) {}
+  DeferredFuture(Base& base, const ValueT& v) : Future<ValueT>(v),
+                                                base(base) {}
+  DeferredFuture(Base& base, ValueT&& v) : Future<ValueT>(std::move(v)),
+                                           base(base) {}
   DeferredFuture(const DeferredFuture&) = delete;
   DeferredFuture(DeferredFuture&&);
   DeferredFuture& operator=(const DeferredFuture&) = delete;

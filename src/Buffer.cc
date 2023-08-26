@@ -5,21 +5,25 @@
 
 using namespace std;
 
-
-
 namespace EventAsync {
 
 Buffer::Buffer(Base& base)
-  : base(base), buf(evbuffer_new()), owned(true) {
+    : base(base),
+      buf(evbuffer_new()),
+      owned(true) {
   if (!this->buf) {
     throw bad_alloc();
   }
 }
 
 Buffer::Buffer(Base& base, struct evbuffer* buf)
-  : base(base), buf(buf), owned(false) { }
+    : base(base),
+      buf(buf),
+      owned(false) {}
 
-Buffer::Buffer(Buffer&& other) : base(other.base), buf(other.buf) {
+Buffer::Buffer(Buffer&& other)
+    : base(other.base),
+      buf(other.buf) {
   other.buf = nullptr;
   other.owned = false;
 }
@@ -263,7 +267,7 @@ struct evbuffer_ptr Buffer::search(const char* what, size_t size,
   return evbuffer_search(this->buf, what, size, start);
 }
 struct evbuffer_ptr Buffer::search_range(const char* what, size_t size,
-    const struct evbuffer_ptr *start, const struct evbuffer_ptr *end) {
+    const struct evbuffer_ptr* start, const struct evbuffer_ptr* end) {
   return evbuffer_search_range(this->buf, what, size, start, end);
 }
 struct evbuffer_ptr Buffer::search_eol(struct evbuffer_ptr* start,
@@ -397,19 +401,17 @@ Buffer::WriteAwaiter Buffer::write(evutil_socket_t fd, ssize_t size) {
   return WriteAwaiter(*this, fd, size);
 }
 
-
-
 Buffer::ReadAwaiter::ReadAwaiter(
     Buffer& buf,
     evutil_socket_t fd,
     ssize_t limit,
     void (*cb)(evutil_socket_t, short, void*))
-  : buf(buf),
-    event(this->buf.base, fd, EV_READ, cb, this),
-    limit(limit),
-    bytes_read(0),
-    err(false),
-    coro(nullptr) { }
+    : buf(buf),
+      event(this->buf.base, fd, EV_READ, cb, this),
+      limit(limit),
+      bytes_read(0),
+      err(false),
+      coro(nullptr) {}
 
 bool Buffer::ReadAwaiter::await_ready() const noexcept {
   return (this->bytes_read >= this->limit);
@@ -424,7 +426,7 @@ Buffer::ReadAtMostAwaiter::ReadAtMostAwaiter(
     Buffer& buf,
     evutil_socket_t fd,
     ssize_t limit)
-  : ReadAwaiter(buf, fd, limit, &ReadAtMostAwaiter::on_read_ready) { }
+    : ReadAwaiter(buf, fd, limit, &ReadAtMostAwaiter::on_read_ready) {}
 
 size_t Buffer::ReadAtMostAwaiter::await_resume() {
   if (this->err) {
@@ -445,8 +447,8 @@ Buffer::ReadExactlyAwaiter::ReadExactlyAwaiter(
     Buffer& buf,
     evutil_socket_t fd,
     size_t limit)
-  : ReadAwaiter(buf, fd, limit, &ReadExactlyAwaiter::on_read_ready),
-    eof(false) { }
+    : ReadAwaiter(buf, fd, limit, &ReadExactlyAwaiter::on_read_ready),
+      eof(false) {}
 
 void Buffer::ReadExactlyAwaiter::await_resume() {
   if (this->err) {
@@ -481,12 +483,12 @@ Buffer::WriteAwaiter::WriteAwaiter(
     Buffer& buf,
     evutil_socket_t fd,
     ssize_t limit)
-  : buf(buf),
-    event(this->buf.base, fd, EV_WRITE, &WriteAwaiter::on_write_ready, this),
-    limit(limit),
-    bytes_written(0),
-    err(false),
-    coro(nullptr) { }
+    : buf(buf),
+      event(this->buf.base, fd, EV_WRITE, &WriteAwaiter::on_write_ready, this),
+      limit(limit),
+      bytes_written(0),
+      err(false),
+      coro(nullptr) {}
 
 bool Buffer::WriteAwaiter::await_ready() const noexcept {
   return false;

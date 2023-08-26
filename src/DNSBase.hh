@@ -1,14 +1,12 @@
 #pragma once
 
-#include <event2/event.h>
 #include <event2/dns.h>
+#include <event2/event.h>
 
 #include <functional>
 #include <memory>
 
 #include "Base.hh"
-
-
 
 namespace EventAsync {
 
@@ -37,7 +35,7 @@ public:
   void resume();
 
   void search_clear();
-  void search_add(const char *domain);
+  void search_add(const char* domain);
   void search_ndots_set(int ndots);
 
   void set_option(const char* option, const char* val);
@@ -51,8 +49,6 @@ public:
       void (*cb)(int result, struct evutil_addrinfo* res, void* arg),
       void* cbarg);
   void getaddrinfo_cancel(struct evdns_getaddrinfo_request*);
-
-
 
   template <typename ResultT>
   struct LookupResult {
@@ -119,6 +115,7 @@ public:
   class LookupReverseIPv4Awaiter : public LookupReverseAwaiterBase {
   public:
     using LookupReverseAwaiterBase::LookupReverseAwaiterBase;
+
   protected:
     virtual void start_request();
   };
@@ -126,6 +123,7 @@ public:
   class LookupReverseIPv6Awaiter : public LookupReverseAwaiterBase {
   public:
     using LookupReverseAwaiterBase::LookupReverseAwaiterBase;
+
   protected:
     virtual void start_request();
   };

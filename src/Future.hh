@@ -1,21 +1,19 @@
 #pragma once
 
 #include <coroutine>
+#include <forward_list>
 #include <memory>
 #include <unordered_set>
 #include <variant>
-#include <forward_list>
-
-
 
 namespace EventAsync {
 
 template <typename ResultT>
 class FutureBase {
 public:
-  FutureBase() : awaiting_coros_insert_it(this->awaiting_coros.before_begin()) { }
-  FutureBase(const ResultT& value) : value(value) { }
-  FutureBase(ResultT&& value) : value(std::move(value)) { }
+  FutureBase() : awaiting_coros_insert_it(this->awaiting_coros.before_begin()) {}
+  FutureBase(const ResultT& value) : value(value) {}
+  FutureBase(ResultT&& value) : value(std::move(value)) {}
   FutureBase(const FutureBase&) = delete;
   FutureBase(FutureBase&&);
   FutureBase& operator=(const FutureBase&) = delete;
@@ -107,7 +105,7 @@ public:
 
   class canceled_error : public std::runtime_error {
   public:
-    canceled_error() : runtime_error("Future canceled") { }
+    canceled_error() : runtime_error("Future canceled") {}
     ~canceled_error() = default;
   };
 

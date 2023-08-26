@@ -4,8 +4,6 @@
 
 using namespace std;
 
-
-
 namespace EventAsync {
 
 Config::Config() : config(event_config_new(), event_config_free) {
@@ -42,7 +40,7 @@ void Config::set_max_dispatch_interval(uint64_t max_interval,
     int max_callbacks, int min_priority) {
   auto max_interval_tv = usecs_to_timeval(max_interval);
   if (event_config_set_max_dispatch_interval(this->config.get(),
-      &max_interval_tv, max_callbacks, min_priority)) {
+          &max_interval_tv, max_callbacks, min_priority)) {
     throw runtime_error("event_config_set_max_dispatch_interval");
   }
 }
@@ -50,7 +48,7 @@ void Config::set_max_dispatch_interval(uint64_t max_interval,
 void Config::set_max_dispatch_interval(const struct timeval* max_interval,
     int max_callbacks, int min_priority) {
   if (event_config_set_max_dispatch_interval(this->config.get(),
-      max_interval, max_callbacks, min_priority)) {
+          max_interval, max_callbacks, min_priority)) {
     throw runtime_error("event_config_set_max_dispatch_interval");
   }
 }

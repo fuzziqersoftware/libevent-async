@@ -2,27 +2,25 @@
 
 #include <unistd.h>
 
-#include <phosg/Time.hh>
 #include <phosg/Network.hh>
+#include <phosg/Time.hh>
 
 #include "Event.hh"
 #include "Future.hh"
 
 using namespace std;
 
-
-
 namespace EventAsync {
 
 Base::Base()
-  : base(event_base_new()) {
+    : base(event_base_new()) {
   if (!this->base) {
     throw bad_alloc();
   }
 }
 
 Base::Base(Config& config)
-  : base(event_base_new_with_config(config.get())) {
+    : base(event_base_new_with_config(config.get())) {
   if (!this->base) {
     throw runtime_error("event_base_new_with_config failed");
   }
@@ -53,7 +51,7 @@ void Base::once(
   // TODO: can we do this without an extra allocation?
   auto fn = new function<void(evutil_socket_t, short)>(cb);
   if (event_base_once(this->base, fd, what, &Base::dispatch_once_cb, fn,
-      &tv)) {
+          &tv)) {
     delete fn;
     throw runtime_error("event_base_once failed");
   }
@@ -82,7 +80,7 @@ Base::ReadAwaiter Base::read(evutil_socket_t fd, void* data, size_t size) {
 Task<string> Base::read(evutil_socket_t fd, size_t size) {
   string ret(size, '\0');
   co_await this->read(fd, const_cast<char*>(ret.data()), ret.size());
-  co_return ret;
+  co_return std::move(ret);
 }
 
 Base::WriteAwaiter Base::write(evutil_socket_t fd, const void* data, size_t size) {
@@ -104,11 +102,14 @@ Task<int> Base::connect(const std::string& addr, int port) {
   co_return std::move(fd);
 }
 
-
-
 Base::RecvFromAwaiter::RecvFromAwaiter(
     Base& base, evutil_socket_t fd, size_t max_size)
-  : base(base), event(), fd(fd), max_size(max_size), err(false), coro(nullptr) { }
+    : base(base),
+      event(),
+      fd(fd),
+      max_size(max_size),
+      err(false),
+      coro(nullptr) {}
 
 bool Base::RecvFromAwaiter::await_ready() {
   socklen_t ss_len = sizeof(struct sockaddr_storage);
@@ -185,21 +186,19 @@ void Base::RecvFromAwaiter::on_read_ready(evutil_socket_t, short, void* ctx) {
   }
 }
 
-
-
 Base::ReadAwaiter::ReadAwaiter(
     Base& base,
     evutil_socket_t fd,
     void* data,
     size_t size)
-  : base(base),
-    event(),
-    fd(fd),
-    data(data),
-    size(size),
-    err(false),
-    eof(false),
-    coro(nullptr) { }
+    : base(base),
+      event(),
+      fd(fd),
+      data(data),
+      size(size),
+      err(false),
+      eof(false),
+      coro(nullptr) {}
 
 bool Base::ReadAwaiter::await_ready() {
   ssize_t bytes_read = ::read(this->fd, this->data, this->size);
@@ -272,20 +271,18 @@ void Base::ReadAwaiter::on_read_ready(evutil_socket_t, short, void* ctx) {
   }
 }
 
-
-
 Base::WriteAwaiter::WriteAwaiter(
     Base& base,
     evutil_socket_t fd,
     const void* data,
     size_t size)
-  : base(base),
-    event(),
-    fd(fd),
-    data(data),
-    size(size),
-    err(false),
-    coro(nullptr) { }
+    : base(base),
+      event(),
+      fd(fd),
+      data(data),
+      size(size),
+      err(false),
+      coro(nullptr) {}
 
 bool Base::WriteAwaiter::await_ready() {
   ssize_t bytes_written = ::write(this->fd, this->data, this->size);
@@ -353,8 +350,6 @@ void Base::WriteAwaiter::on_write_ready(evutil_socket_t, short, void* ctx) {
   }
 }
 
-
-
 Base::AcceptAwaiter Base::accept(
     int listen_fd, struct sockaddr_storage* addr) {
   return AcceptAwaiter(*this, listen_fd, addr);
@@ -364,13 +359,13 @@ Base::AcceptAwaiter::AcceptAwaiter(
     Base& base,
     int listen_fd,
     struct sockaddr_storage* addr)
-  : listen_fd(listen_fd),
-    accepted_fd(-1),
-    base(base),
-    event(this->base, this->listen_fd, EV_READ, &AcceptAwaiter::on_accept_ready, this),
-    addr(addr),
-    err(false),
-    coro(nullptr) { }
+    : listen_fd(listen_fd),
+      accepted_fd(-1),
+      base(base),
+      event(this->base, this->listen_fd, EV_READ, &AcceptAwaiter::on_accept_ready, this),
+      addr(addr),
+      err(false),
+      coro(nullptr) {}
 
 bool Base::AcceptAwaiter::await_ready() const noexcept {
   return false;
@@ -405,8 +400,6 @@ void Base::AcceptAwaiter::on_accept_ready(int, short, void* ctx) {
     aw->coro.resume(); // Got an fd; coro can resume
   }
 }
-
-
 
 void Base::dump_events(FILE* stream) {
   event_base_dump_events(this->base, stream);

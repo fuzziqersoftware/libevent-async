@@ -2,12 +2,10 @@
 
 using namespace std;
 
-
-
 namespace EventAsync {
 
 DNSBase::DNSBase(Base& base)
-  : dns_base(evdns_base_new(base.base, true)) { }
+    : dns_base(evdns_base_new(base.base, true)) {}
 
 DNSBase::DNSBase(DNSBase&& other) : dns_base(other.dns_base) {
   other.dns_base = nullptr;
@@ -74,7 +72,7 @@ void DNSBase::search_clear() {
   return evdns_base_search_clear(this->dns_base);
 }
 
-void DNSBase::search_add(const char *domain) {
+void DNSBase::search_add(const char* domain) {
   return evdns_base_search_add(this->dns_base, domain);
 }
 
@@ -105,15 +103,13 @@ void DNSBase::getaddrinfo_cancel(struct evdns_getaddrinfo_request* req) {
   return evdns_getaddrinfo_cancel(req);
 }
 
-
-
 DNSBase::LookupAwaiterBase::LookupAwaiterBase(
     DNSBase& dns_base, const void* target, int flags)
-  : dns_base(dns_base),
-    complete(false),
-    target(target),
-    flags(flags),
-    coro(nullptr) { }
+    : dns_base(dns_base),
+      complete(false),
+      target(target),
+      flags(flags),
+      coro(nullptr) {}
 
 bool DNSBase::LookupAwaiterBase::await_ready() const noexcept {
   return this->complete;
@@ -138,11 +134,11 @@ DNSBase::LookupResult<in_addr>&& DNSBase::LookupIPv4Awaiter::await_resume() {
 
 void DNSBase::LookupIPv4Awaiter::start_request() {
   if (evdns_base_resolve_ipv4(
-      this->dns_base.dns_base,
-      reinterpret_cast<const char*>(this->target),
-      this->flags,
-      &LookupAwaiterBase::dispatch_on_request_complete,
-      this) == nullptr) {
+          this->dns_base.dns_base,
+          reinterpret_cast<const char*>(this->target),
+          this->flags,
+          &LookupAwaiterBase::dispatch_on_request_complete,
+          this) == nullptr) {
     throw runtime_error("evdns_base_resolve_ipv4 failed");
   }
 }
@@ -169,11 +165,11 @@ DNSBase::LookupResult<in6_addr>&& DNSBase::LookupIPv6Awaiter::await_resume() {
 
 void DNSBase::LookupIPv6Awaiter::start_request() {
   if (evdns_base_resolve_ipv6(
-      this->dns_base.dns_base,
-      reinterpret_cast<const char*>(this->target),
-      this->flags,
-      &LookupAwaiterBase::dispatch_on_request_complete,
-      this) == nullptr) {
+          this->dns_base.dns_base,
+          reinterpret_cast<const char*>(this->target),
+          this->flags,
+          &LookupAwaiterBase::dispatch_on_request_complete,
+          this) == nullptr) {
     throw runtime_error("evdns_base_resolve_ipv6 failed");
   }
 }
@@ -206,7 +202,7 @@ void DNSBase::LookupReverseAwaiterBase::on_request_complete(
       throw logic_error("reverse lookup did not result in PTR record");
     }
     this->result.ttl = ttl;
-    const char* const * addrs = reinterpret_cast<const char* const *>(addresses);
+    const char* const* addrs = reinterpret_cast<const char* const*>(addresses);
     this->result.results.reserve(count);
     for (int x = 0; x < count; x++) {
       this->result.results.emplace_back(addrs[x]);
@@ -216,22 +212,22 @@ void DNSBase::LookupReverseAwaiterBase::on_request_complete(
 
 void DNSBase::LookupReverseIPv4Awaiter::start_request() {
   if (evdns_base_resolve_reverse(
-      this->dns_base.dns_base,
-      reinterpret_cast<const in_addr*>(this->target),
-      this->flags,
-      &LookupAwaiterBase::dispatch_on_request_complete,
-      this) == nullptr) {
+          this->dns_base.dns_base,
+          reinterpret_cast<const in_addr*>(this->target),
+          this->flags,
+          &LookupAwaiterBase::dispatch_on_request_complete,
+          this) == nullptr) {
     throw runtime_error("evdns_base_resolve_reverse failed");
   }
 }
 
 void DNSBase::LookupReverseIPv6Awaiter::start_request() {
   if (evdns_base_resolve_reverse_ipv6(
-      this->dns_base.dns_base,
-      reinterpret_cast<const in6_addr*>(this->target),
-      this->flags,
-      &LookupAwaiterBase::dispatch_on_request_complete,
-      this) == nullptr) {
+          this->dns_base.dns_base,
+          reinterpret_cast<const in6_addr*>(this->target),
+          this->flags,
+          &LookupAwaiterBase::dispatch_on_request_complete,
+          this) == nullptr) {
     throw runtime_error("evdns_base_resolve_reverse_ipv6 failed");
   }
 }
