@@ -2,6 +2,7 @@
 
 #include <event2/buffer.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <phosg/Hash.hh>
 #include <phosg/Random.hh>
@@ -433,7 +434,7 @@ BinlogRowsEvent BinlogProcessor::parse_rows_event(const string& data) {
   }
 
   // TODO: do we need to support the case where some columns aren't present?
-  for (size_t x = 0; x < (1 + has_preimage); x++) {
+  for (size_t x = 0; x < static_cast<size_t>(1 + has_preimage); x++) {
     for (bool p : r.get_bitmask(num_columns)) {
       if (!p) {
         throw runtime_error("one or more columns not present in row event");
