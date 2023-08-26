@@ -97,7 +97,7 @@ private:
   void assert_conn_open();
   void parse_error_body(ProtocolBuffer& buf);
 
-  Task<void> expect_ok(uint8_t expected_seq = 1);
+  Task<void> expect_ok();
 };
 
 } // namespace EventAsync::MySQL

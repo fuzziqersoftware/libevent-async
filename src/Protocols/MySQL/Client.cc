@@ -431,7 +431,7 @@ void Client::parse_error_body(ProtocolBuffer& buf) {
       error_code, sqlstate.c_str(), message.c_str()));
 }
 
-Task<void> Client::expect_ok(uint8_t expected_seq) {
+Task<void> Client::expect_ok() {
   ProtocolBuffer buf(this->base);
 
   co_await this->read_command(buf);
