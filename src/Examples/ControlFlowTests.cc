@@ -1,4 +1,5 @@
 #include <inttypes.h>
+#include <string.h>
 
 #include <coroutine>
 #include <phosg/Network.hh>
@@ -44,7 +45,7 @@ Task<size_t> test_returns_fn2() {
   co_return ret + 4;
 }
 
-DetachedTask test_returns(Base& base) {
+DetachedTask test_returns(Base&) {
   size_t v = co_await test_returns_fn2();
   expect_eq(v, 9);
 }
@@ -59,7 +60,7 @@ Task<void> test_exceptions_fn2() {
   co_return;
 }
 
-DetachedTask test_exceptions(Base& base) {
+DetachedTask test_exceptions(Base&) {
   try {
     co_await test_returns_fn2();
   } catch (const runtime_error& e) {
@@ -376,7 +377,7 @@ Task<int64_t> test_future_set_value(Base& base, FutureT& f, int64_t value) {
 }
 
 template <typename FutureT>
-Task<int64_t> test_future_await(Base& base, FutureT& f) {
+Task<int64_t> test_future_await(Base&, FutureT& f) {
   co_return std::move(co_await f);
 }
 
@@ -478,7 +479,7 @@ DetachedTask test_deferred_future_value(Base& base) {
   }
 }
 
-Task<int64_t> test_channel_read_task(Base& base, Channel<int64_t>& c) {
+Task<int64_t> test_channel_read_task(Base&, Channel<int64_t>& c) {
   co_return (co_await c.read());
 }
 
